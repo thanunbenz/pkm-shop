@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  USER
+  ADMIN
+}
+
+enum ProductStatus {
+  PACK
+  BOX
+  PROMO
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+model User {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  fname     String
+  lname     String
+  email     String     @unique
+  password  String?
+  createdAt DateTime   @default(now())
+  role      UserStatus @default(USER)
+  Account   Account[]
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+}
+
+model VerificationToken {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Product {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String?
+  price         Float
+  discountprice Float
+  issale        Boolean
+  isrecommend   Boolean
+  image         String?
+  imageId       String? @default("-")
+  category      ProductStatus @default(PACK)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  code          Code[]
+}
+
+model File {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  path      String
+  size      Int
+  createdAt DateTime @default(now())
+}
+
+model Code {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  code      String
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  productId String   @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Purchase {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String         @db.ObjectId
+  productId     String         @db.ObjectId
+  totalAmount   Float
+  status        OrderStatus    @default(PENDING)
+  createdAt     DateTime       @default(now())
+  purchaseCodes PurchaseCode[]
+  payment       Payment?
+}
+
+model PurchaseCode {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseId String   @db.ObjectId
+  codeId     String   @db.ObjectId
+  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseId    String        @unique @db.ObjectId
+  paymentMethod String
+  paymentStatus PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  purchase      Purchase      @relation(fields: [purchaseId], references: [id])
+}
