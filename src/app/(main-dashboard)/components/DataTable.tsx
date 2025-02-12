@@ -24,7 +24,7 @@ interface Product {
 
 export default function DataTable() {
     const [products, setProducts] = useState<Product[]>([]);
-    const { count, setCount } = useStore();
+    const { listProducts, retrieveProductCount } = useStore();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -33,14 +33,8 @@ export default function DataTable() {
             setProducts(data.data);
         };
         fetchProducts();
-        handleCount();
-    }, [count]);
-
-    const handleCount = async () => {
-        const response = await fetch("/api/products/count");
-        const data = await response.json();
-        setCount(data.count);
-    };
+        retrieveProductCount();
+    }, [listProducts]);
 
     const handleDelete = async (id: string) => {
         try {
@@ -62,7 +56,6 @@ export default function DataTable() {
             if (!productResponse.ok) throw new Error("Failed to delete product");
 
             console.log("Deleted product:", await productResponse.json());
-            handleCount();
         } catch (error) {
             console.error("Error deleting:", error);
         }

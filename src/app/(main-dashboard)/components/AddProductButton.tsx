@@ -8,7 +8,7 @@ import { showToastSuccess, showToastError } from "../../../utils/toastUtil";
 import { useStore } from "@/store/useStore";
 
 export default function AddProductButton() {
-    const { count, setCount } = useStore();
+    const { retrieveProductCount } = useStore();
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState("");
     const [price, setPrice] = useState(1);
@@ -25,7 +25,7 @@ export default function AddProductButton() {
 
     const toggleModal = () => {
         setIsOpen((prev) => !prev);
-        handleCount();
+        retrieveProductCount();
     };
 
     useEffect(() => {
@@ -55,7 +55,7 @@ export default function AddProductButton() {
             setImagePath(data.file.path);
             setImageId(data.file.id);
             setImageName(file.name);
-            handleCount();
+            retrieveProductCount();
             showToastSuccess('Upload successful');
         } catch (error) {
             console.error('Upload failed:', error);
@@ -125,12 +125,7 @@ export default function AddProductButton() {
         }
     };
 
-    const handleCount = async () => {
-        const res = await fetch("/api/products/count");
-        const data = await res.json();
-        console.log(data.count)
-        setCount(data.count);
-    }
+
 
     return (
         <>
@@ -275,7 +270,7 @@ export default function AddProductButton() {
                                                 value={discountPrice}
                                                 onChange={(e) =>
                                                     setDiscountPrice(() =>
-                                                        price === 1 ? 1 : Math.min(Math.max(Number(e.target.value), 1), price-1)
+                                                        price === 1 ? 1 : Math.min(Math.max(Number(e.target.value), 1), price - 1)
                                                     )
                                                 }
                                             />
