@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import "../globals.css";
 
-import Navbar from "./components/NavBar";
-import Footer from "./components/Footer";
-import FloatingScrollUp from "./components/FloatingScrollUp";
+import Navbar from "@/components/layout/NavBar";
+import Footer from "@/components/layout/Footer";
+// import FloatingScrollUp from "@/components/layout/FloatingScrollUp";
 
 import { Providers } from "../context/providers";
+import { APP_NAME, APP_DESCRIPTION } from "@/config/constants";
 
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css';
@@ -20,9 +21,8 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
-  title: "Pokémon TCG Live Code Store",
-  description:
-    "Buy Pokémon TCG Live codes securely with various payment methods. Get your digital codes instantly for online Pokémon Trading Card Game.",
+  title: APP_NAME,
+  description: APP_DESCRIPTION,
   keywords: [
     "Pokémon TCG Live",
     "Pokémon code",
@@ -43,10 +43,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${kanit.variable} antialiased`}>
         <Providers>
-        <Navbar />
-        {children}
-        <FloatingScrollUp/>
-        <Footer />
+          <Navbar />
+          {children}
+          {/* <FloatingScrollUp/> */}
+          <Footer />
         </Providers>
       </body>
     </html>

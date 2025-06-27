@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -31,7 +31,7 @@ enum OrderStatus {
 }
 
 model User {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int        @id @default(autoincrement())
   fname     String
   lname     String
   email     String     @unique
@@ -42,17 +42,17 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String  @db.ObjectId
+  id                Int     @id @default(autoincrement())
+  userId            Int
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id])
 
@@ -60,14 +60,14 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  id           Int      @id @default(autoincrement())
   sessionToken String   @unique
-  userId       String   @db.ObjectId
+  userId       Int
   expires      DateTime
 }
 
 model VerificationToken {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         Int      @id @default(autoincrement())
   identifier String
   token      String   @unique
   expires    DateTime
@@ -76,15 +76,15 @@ model VerificationToken {
 }
 
 model Product {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  id            Int           @id @default(autoincrement())
   name          String
-  description   String?
+  description   String?       @db.Text
   price         Float
   discountprice Float
   issale        Boolean
   isrecommend   Boolean
-  image         String?
-  imageId       String? @default("-")
+  image         String?       @db.Text
+  imageId       String?       @default("-")
   category      ProductStatus @default(PACK)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -92,26 +92,26 @@ model Product {
 }
 
 model File {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int      @id @default(autoincrement())
   name      String
-  path      String
+  path      String   @db.Text
   size      Int
   createdAt DateTime @default(now())
 }
 
 model Code {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int      @id @default(autoincrement())
   code      String
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
-  productId String   @db.ObjectId
+  productId Int
   product   Product  @relation(fields: [productId], references: [id])
 }
 
 model Purchase {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String         @db.ObjectId
-  productId     String         @db.ObjectId
+  id            Int            @id @default(autoincrement())
+  userId        Int
+  productId     Int
   totalAmount   Float
   status        OrderStatus    @default(PENDING)
   createdAt     DateTime       @default(now())
@@ -120,15 +120,15 @@ model Purchase {
 }
 
 model PurchaseCode {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  purchaseId String   @db.ObjectId
-  codeId     String   @db.ObjectId
+  id         Int      @id @default(autoincrement())
+  purchaseId Int
+  codeId     Int
   purchase   Purchase @relation(fields: [purchaseId], references: [id])
 }
 
 model Payment {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  purchaseId    String        @unique @db.ObjectId
+  id            Int           @id @default(autoincrement())
+  purchaseId    Int           @unique
   paymentMethod String
   paymentStatus PaymentStatus @default(PENDING)
   createdAt     DateTime      @default(now())

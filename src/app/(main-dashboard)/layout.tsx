@@ -3,15 +3,13 @@ import { Kanit } from "next/font/google";
 import "../globals.css";
 import { Providers } from "../context/providers";
 
-import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
+import Sidebar from "@/components/layout/DashboardSidebar";
+import Header from "@/components/layout/Header";
 import { useState } from "react";
-
 
 import { config } from '@fortawesome/fontawesome-svg-core'
 import '@fortawesome/fontawesome-svg-core/styles.css';
 config.autoAddCss = false
-
 
 const kanit = Kanit({
   weight: ["300", "400", "500"],
