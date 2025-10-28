@@ -2,11 +2,14 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { showToastSuccess, showToastError } from "../../../utils/toastUtil";
+import { showToastSuccess, showToastError } from "@/lib/utils/toast";
 import { Bounce, ToastContainer } from "react-toastify";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [fname, setfName] = useState("");
   const [lname, setlName] = useState("");
   const [email, setEmail] = useState("");
@@ -52,22 +55,48 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fname, lname, email, password }),
+        body: JSON.stringify({ fname, lname, email, password, confirmPassword }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         const form = e.target as HTMLFormElement;
-        showToastSuccess("Registration successful!");
+        showToastSuccess("Registration successful! Logging you in...");
         form.reset();
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1000);
+
+        // Auto login after successful registration
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+
+        if (result?.ok) {
+          setTimeout(() => {
+            router.push("/");
+          }, 1000);
+        } else {
+          showToastError("Registration successful but login failed. Please login manually.");
+          setTimeout(() => {
+            router.push("/login");
+          }, 1500);
+        }
       } else {
-        showToastError(
-          data?.message?.error ?? data?.error ?? "Something went wrong."
-        );
+        // Show field-specific errors if available
+        if (data?.errors && typeof data.errors === 'object') {
+          // Show all field errors
+          Object.entries(data.errors).forEach(([field, messages]) => {
+            if (Array.isArray(messages)) {
+              messages.forEach((msg) => showToastError(`${field}: ${msg}`));
+            }
+          });
+        } else {
+          // Show general error message
+          showToastError(
+            data?.message?.error ?? data?.error ?? "Something went wrong."
+          );
+        }
       }
     } catch (error) {
       console.error("Error during registration:", error);

@@ -4,12 +4,12 @@ import { faArrowLeft, faFileImage, faPenToSquare, faTimes } from "@fortawesome/f
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Bounce, toast, ToastContainer } from "react-toastify";
 import Image from "next/image";
-import pack from "../../../../public/uploads/no_image_available.png";
+import pack from "../../../../public/uploads/no_image_available.svg";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Loading from "@/app/components/Loading";
-import { showToastError, showToastSuccess } from "@/utils/toastUtil";
+import Loading from "@/components/ui/Loading";
+import { showToastError, showToastSuccess } from "@/lib/utils/toast";
 
 interface Product {
     id: string;
@@ -39,7 +39,7 @@ export default function Page() {
             issale: false,
             isrecommend: false,
             category: 'PACK',
-            image: '/uploads/no_image_available.png',
+            image: '/uploads/no_image_available.svg',
             imageId: '-',
             code: []
         });
@@ -50,26 +50,34 @@ export default function Page() {
     const [issale, setIssale] = useState(false);
     const [isrecommend, setIsrecommend] = useState(false);
     const [category, setCategory] = useState("PACK");
-    const [image, setImage] = useState("/uploads/no_image_available.png");
+    const [image, setImage] = useState("/uploads/no_image_available.svg");
     const [imageId, setImageId] = useState("-");
     const [uploading, setUploading] = useState(false)
     const [imageName, setImageName] = useState("");
 
     const fetchProduct = async () => {
-        const response = await fetch(`/api/products/${id}`);
-        const data = await response.json();
-        setProduct(data);
-        setName(data.name);
-        setDescription(data.description);
-        setPrice(data.price);
-        setDiscountprice(data.discountprice);
-        setIssale(data.issale);
-        setIsrecommend(data.isrecommend);
-        setCategory(data.category);
-        setImage(data.image);
-        setImageId(data.imageId);
-        // setCode(data.code);
-        setIsLoading(false);
+        try {
+            const response = await fetch(`/api/v1/products/${id}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch product');
+            }
+            const result = await response.json();
+            const data = result.data;
+            setProduct(data);
+            setName(data.name);
+            setDescription(data.description);
+            setPrice(data.price);
+            setDiscountprice(data.discountprice);
+            setIssale(data.issale);
+            setIsrecommend(data.isrecommend);
+            setCategory(data.category);
+            setImage(data.image);
+            setImageId(data.imageId);
+            setIsLoading(false);
+        } catch (error) {
+            console.error('Error fetching product:', error);
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -82,14 +90,13 @@ export default function Page() {
 
         if (imageId === "-" || imageId === null || imageId === undefined || imageId === "") {
             try {
-                const res = await fetch('/api/upload', {
+                const res = await fetch('/api/v1/upload', {
                     method: 'POST',
                     body: formData,
                 });
 
                 if (!res.ok) {
                     const errorText = await res.text();
-                    // showToastError('Upload failed');
                     throw new Error(`Server error: ${errorText}`);
                 }
 
@@ -105,14 +112,14 @@ export default function Page() {
             }
         } else {
             try {
-                const res = await fetch(`/api/upload/${imageId}`, {
+                const res = await fetch(`/api/v1/upload/${imageId}`, {
                     method: 'PUT',
                     body: formData,
                 });
 
                 if (!res.ok) {
                     const errorText = await res.text();
-                    throw new Error(`Server error2: ${errorText}`);
+                    throw new Error(`Server error: ${errorText}`);
                 }
 
                 const data = await res.json();
@@ -138,15 +145,17 @@ export default function Page() {
             discountprice: Number(discountprice),
             issale: issale,
             isrecommend: isrecommend,
-            image: image || "/uploads/no_image_available.png",
+            image: image || "/uploads/no_image_available.svg",
             imageId: imageId || "-",
             category: category
         }
-        const response = await fetch(`/api/products/${id}`, {
+        const response = await fetch(`/api/v1/products/${id}`, {
             method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(data)
         });
-        const resultData = await response.json();
 
         if (response.ok) {
             toast.success('Product updated successfully');

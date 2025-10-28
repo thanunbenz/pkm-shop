@@ -23,3 +23,34 @@ body {
 html {
   font-family: "Kanit", serif;
 }
+
+/* Custom Scrollbar Styles */
+.scrollbar-visible::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #134A9B 0%, #1e5bb8 100%);
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #0f3a7a 0%, #134A9B 100%);
+}
+
+.scrollbar-visible::-webkit-scrollbar-thumb:active {
+  background: #0f3a7a;
+}
+
+/* Firefox scrollbar */
+.scrollbar-visible {
+  scrollbar-width: thin;
+  scrollbar-color: #134A9B #f1f5f9;
+}

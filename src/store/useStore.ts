@@ -10,17 +10,33 @@ interface Store {
 export const useStore = create<Store>((set) => ({
     listProducts: 0,
     retrieveProductCount: async () => {
-        const response = await fetch("/api/products/count");
-        const data = await response.json();
-        set({ listProducts: data.count });
-        return data.count;
+        try {
+            const response = await fetch("/api/v1/products/count");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            set({ listProducts: data.count });
+            return data.count;
+        } catch (error) {
+            console.error('Error fetching product count:', error);
+            return 0;
+        }
     },
     listCode: [],
     retrieveCodeCount: async () => {
-        const response = await fetch("/api/code/count");
-        const data = await response.json();
-        set({ listProducts: data.count });
-        return data.count;
+        try {
+            const response = await fetch("/api/v1/code/count");
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            set({ listProducts: data.count });
+            return data.count;
+        } catch (error) {
+            console.error('Error fetching code count:', error);
+            return 0;
+        }
     },
 }));
 

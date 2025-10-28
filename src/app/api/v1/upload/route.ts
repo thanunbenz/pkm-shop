@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { PrismaClient } from '@prisma/client'
+import prisma from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 import { NextResponse } from 'next/server'
-
-const prisma = new PrismaClient()
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
+import crypto from 'crypto'
+import { uploadRateLimiter, getClientIp } from '@/lib/rateLimit'
+import { hasStaffAccess, getUnauthorizedError } from '@/lib/utils/auth-helpers'
 
 export const config = {
     api: {
@@ -12,8 +14,59 @@ export const config = {
     },
 }
 
+// MIME type signatures for validation
+const MIME_SIGNATURES: { [key: string]: number[][] } = {
+    'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+    'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+    'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+}
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+const ALLOWED_EXTENSIONS: { [key: string]: string } = {
+    'image/jpeg': '.jpg',
+    'image/png': '.png',
+    'application/pdf': '.pdf',
+}
+
+function validateFileType(buffer: Buffer, mimeType: string): boolean {
+    const signatures = MIME_SIGNATURES[mimeType]
+    if (!signatures) return false
+
+    return signatures.some(signature => {
+        return signature.every((byte, index) => buffer[index] === byte)
+    })
+}
+
 export async function POST(request: Request) {
     try {
+        // Authentication check - Allow OPERATOR and ADMIN
+        const session = await getServerSession(authOptions)
+
+        if (!hasStaffAccess(session)) {
+            return NextResponse.json(
+                { success: false, ...getUnauthorizedError("OPERATOR or ADMIN") },
+                { status: 401 }
+            )
+        }
+
+        // Rate limiting check
+        const clientIp = getClientIp(request)
+        const rateLimitResult = await uploadRateLimiter.check(`upload:${clientIp}`)
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { error: 'Too many upload requests. Please try again later.' },
+                {
+                    status: 429,
+                    headers: {
+                        'X-RateLimit-Limit': '10',
+                        'X-RateLimit-Remaining': '0',
+                        'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+                    }
+                }
+            )
+        }
+
         const formData = await request.formData()
         const file = formData.get('file')
 
@@ -24,15 +77,7 @@ export async function POST(request: Request) {
             )
         }
 
-        const allowedExtensions = ['.pdf', '.jpg', '.png']
-        const fileExtension = path.extname(file.name).toLowerCase()
-        if (!allowedExtensions.includes(fileExtension)) {
-            return NextResponse.json(
-                { error: 'Only PDF, JPG, and PNG files are allowed' },
-                { status: 400 }
-            )
-        }
-
+        // File size validation
         if (file.size <= 0) {
             return NextResponse.json(
                 { error: 'Invalid file size' },
@@ -47,49 +92,67 @@ export async function POST(request: Request) {
             )
         }
 
-        const existingFile = await prisma.file.findFirst({
-            where: { name: file.name }
-        })
+        // Read file buffer
+        const buffer = Buffer.from(await file.arrayBuffer())
 
-        if (existingFile) {
+        // Validate MIME type by checking file signature (magic bytes)
+        if (!ALLOWED_MIME_TYPES.includes(file.type)) {
             return NextResponse.json(
-                { error: 'A file with this name already exists in the system' },
+                { error: 'Invalid file type' },
                 { status: 400 }
             )
         }
 
-        const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/\s+/g, '_').replace(/[^\w.-]/g, '');
-        const uniqueFilename = `${sanitizedFileName}_${timestamp}${fileExtension}`;
-
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+        const isValidType = validateFileType(buffer, file.type)
+        if (!isValidType) {
+            return NextResponse.json(
+                { error: 'File content does not match file type' },
+                { status: 400 }
+            )
         }
 
-        const filePath = path.join(uploadDir, uniqueFilename);
+        // Generate secure filename using UUID
+        const fileExtension = ALLOWED_EXTENSIONS[file.type] || '.bin'
+        const uniqueFilename = `${crypto.randomUUID()}${fileExtension}`
 
-        const buffer = Buffer.from(await file.arrayBuffer());
-        await fs.promises.writeFile(filePath, buffer);
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads')
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true })
+        }
 
+        const filePath = path.join(uploadDir, uniqueFilename)
+
+        // Path traversal protection
+        const realUploadDir = fs.realpathSync(uploadDir)
+        const resolvedPath = path.resolve(filePath)
+        if (!resolvedPath.startsWith(realUploadDir)) {
+            return NextResponse.json(
+                { error: 'Invalid file path' },
+                { status: 400 }
+            )
+        }
+
+        // Write file
+        await fs.promises.writeFile(filePath, buffer)
+
+        // Save to database
         const fileData = await prisma.file.create({
             data: {
                 name: uniqueFilename,
                 path: `/uploads/${uniqueFilename}`,
                 size: file.size,
             },
-        });
+        })
 
         return NextResponse.json(
             {
                 message: 'Upload successful',
                 file: fileData,
-                warning: 'Please review the file within 24 hours'
             },
             { status: 200 }
         )
     } catch (error) {
-        console.error(error)
+        console.error('Upload error:', error)
         return NextResponse.json(
             {
                 error: 'Upload failed',

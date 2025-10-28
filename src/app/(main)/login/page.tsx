@@ -6,7 +6,7 @@ import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ToastContainer } from "react-toastify";
-import { showToastSuccess, showToastError } from "../../../utils/toastUtil";
+import { showToastSuccess, showToastError } from "@/lib/utils/toast";
 import "react-toastify/dist/ReactToastify.css";
 import { Bounce } from "react-toastify";
 
@@ -40,6 +40,7 @@ export default function LoginPage() {
         showToastSuccess("Login successful!");
         router.replace("/");
       } else {
+        showToastError(result?.error || "Invalid email or password");
         setError(result?.error || "Invalid email or password");
       }
     } catch {

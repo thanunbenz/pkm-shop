@@ -4,7 +4,7 @@ import { faFileImage, faPlus, faX } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState } from "react";
 import { Bounce, ToastContainer } from "react-toastify";
-import { showToastSuccess, showToastError } from "../../../utils/toastUtil";
+import { showToastSuccess, showToastError } from "@/lib/utils/toast";
 import { useStore } from "@/store/useStore";
 
 export default function AddProductButton() {
@@ -19,14 +19,19 @@ export default function AddProductButton() {
     const [imageName, setImageName] = useState("");
     const [isRecommend, setIsRecommend] = useState(false);
     const [category, setCategory] = useState("PACK");
-    const [imagePath, setImagePath] = useState("/uploads/no_image_available.png");
+    const [imagePath, setImagePath] = useState("/uploads/no_image_available.svg");
     const [imageId, setImageId] = useState("-");
 
 
     const toggleModal = () => {
+        console.log("Toggle modal clicked, current isOpen:", isOpen);
         setIsOpen((prev) => !prev);
         retrieveProductCount();
     };
+
+    useEffect(() => {
+        console.log("isOpen changed to:", isOpen);
+    }, [isOpen]);
 
     useEffect(() => {
         if (!isSale) {
@@ -40,14 +45,13 @@ export default function AddProductButton() {
         formData.append('file', file);
 
         try {
-            const res = await fetch('/api/upload', {
+            const res = await fetch('/api/v1/upload', {
                 method: 'POST',
                 body: formData,
             });
 
             if (!res.ok) {
                 const errorText = await res.text();
-                // showToastError('Upload failed');
                 throw new Error(`Server error: ${errorText}`);
             }
 
@@ -68,7 +72,7 @@ export default function AddProductButton() {
         e.preventDefault();
 
         try {
-            const response = await fetch("/api/products", {
+            const response = await fetch("/api/v1/products", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -79,7 +83,7 @@ export default function AddProductButton() {
                     price: Number(discountPrice),
                     discountprice: Number(discountPrice),
                     issale: isSale,
-                    image: imagePath || "/uploads/no_image_available.png",
+                    image: imagePath || "/uploads/no_image_available.svg",
                     imageId: imageId || "-",
                     isrecommend: isRecommend,
                     category: category,
@@ -109,7 +113,7 @@ export default function AddProductButton() {
 
             if (imageId) {
                 try {
-                    await fetch(`/api/upload/${imageId}`, {
+                    await fetch(`/api/v1/upload/${imageId}`, {
                         method: 'DELETE',
                     });
                     setImagePath("");
@@ -129,18 +133,16 @@ export default function AddProductButton() {
 
     return (
         <>
-            <div>
-
-                <button
-                    onClick={toggleModal}
-                    className="block text-white bg-[#134A9B] hover:bg-blue-600 font-medium rounded-full text-sm px-5 py-2.5 text-center uppercase"
-                    type="button"
-                >
-                    <FontAwesomeIcon icon={faPlus} /> Add New Product
-                </button>
+            <button
+                onClick={toggleModal}
+                className="text-white bg-[#134A9B] hover:bg-blue-600 font-medium rounded-full text-sm px-5 py-2.5 text-center uppercase"
+                type="button"
+            >
+                <FontAwesomeIcon icon={faPlus} /> Add New Product
+            </button>
 
                 {isOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-black bg-opacity-50">
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center w-full h-full bg-black bg-opacity-50">
                         <div
                             className="relative bg-white rounded-lg shadow dark:bg-gray-700 max-w-md w-full"
                             onClick={(e) => e.stopPropagation()}
@@ -372,7 +374,6 @@ export default function AddProductButton() {
                         </div>
                     </div>
                 )}
-            </div>
 
             <ToastContainer
                 position="bottom-left"

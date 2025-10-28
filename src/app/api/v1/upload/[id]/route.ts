@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { PrismaClient } from '@prisma/client'
+import prisma from '@/lib/db'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
-
-const prismaClient = new PrismaClient()
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
     try {
@@ -19,7 +17,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
             )
         }
 
-        const existingFile = await prismaClient.file.findUnique({
+        const existingFile = await prisma.file.findUnique({
             where: { id: id }
         })
 
@@ -41,7 +39,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
             )
         }
 
-        await prismaClient.file.delete({
+        await prisma.file.delete({
             where: { id: existingFile.id }
         })
 
@@ -64,7 +62,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     const { id } = params;
-    const file = await prismaClient.file.findUnique({
+    const file = await prisma.file.findUnique({
         where: { id: id }
     })
     return NextResponse.json(file)
@@ -104,7 +102,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             );
         }
 
-        const existingFile = await prismaClient.file.findUnique({
+        const existingFile = await prisma.file.findUnique({
             where: { id: id },
         });
 
@@ -126,11 +124,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             )
         }
 
-        const product = await prismaClient.product.updateMany({
+        const product = await prisma.product.updateMany({
             where: { imageId: existingFile.id },
             data: {
                 imageId: "-",
-                image: "/uploads/no_image_available.png",
+                image: "/uploads/no_image_available.svg",
             },
         });
 
@@ -167,7 +165,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             const filePath = path.join(uploadDir, uniqueFilename);
             await fs.writeFile(filePath, buffer);
 
-            const updatedFile = await prismaClient.file.update({
+            const updatedFile = await prisma.file.update({
                 where: { id: id },
                 data: {
                     name: uniqueFilename,

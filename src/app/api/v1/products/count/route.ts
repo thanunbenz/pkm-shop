@@ -1,5 +1,5 @@
-import { getCountProduct } from "@/app/(main-dashboard)/services/productServices";
-import { NextResponse } from "next/dist/server/web/spec-extension/response";
+import { getCountProduct } from "@/features/products/services/productServices";
+import { NextResponse } from "next/server";
 
 export async function GET() {
     try {
@@ -10,4 +10,3 @@ export async function GET() {
         return NextResponse.json({ error: "Failed to fetch product count" }, { status: 400 });
     }
 }
-

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import NavItem from "./NavItem";
+import NavItem from "@/components/dashboard/NavItem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLaptop,

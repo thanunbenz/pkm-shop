@@ -28,38 +28,49 @@ const ProductItem = ({ product, handleDelete }: { product: Product, handleDelete
             </button>
 
             {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="relative p-4 w-full max-w-md bg-white rounded-lg shadow dark:bg-gray-800">
+                <div
+                    className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+                    onClick={() => setIsModalOpen(false)}
+                >
+                    <div
+                        className="relative p-6 w-full max-w-md bg-white rounded-lg shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             type="button"
-                            className="absolute top-2.5 right-2.5 text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 dark:hover:bg-gray-600 dark:hover:text-white"
+                            className="absolute top-3 right-3 text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-2 transition-colors active:bg-gray-300"
                             onClick={() => setIsModalOpen(false)}
                         >
-                        <FontAwesomeIcon icon={faX} size="lg" />
+                            <FontAwesomeIcon icon={faX} size="lg" />
                         </button>
 
-                        <div className="text-center">
-                            <FontAwesomeIcon icon={faTrash} size="2xl" className="text-gray-400 m-3"/>
-                            <p className="mb-4 text-gray-500 dark:text-gray-300">
-                                Are you sure you want to delete this item?
+                        <div className="text-center pt-2">
+                            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                                <FontAwesomeIcon icon={faTrash} size="2x" className="text-red-600"/>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                Delete Product
+                            </h3>
+                            <p className="mb-6 text-gray-600 text-base">
+                                Are you sure you want to delete &quot;{product.name}&quot;? This action cannot be undone.
                             </p>
                         </div>
 
-                        <div className="flex justify-center items-center space-x-4">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                             <button
-                                className="py-2 px-3 text-sm font-medium text-gray-500 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600"
+                                className="flex-1 py-3 px-4 text-base font-medium text-gray-700 bg-white rounded-lg border-2 border-gray-300 hover:bg-gray-50 active:bg-gray-100 transition-colors"
                                 onClick={() => setIsModalOpen(false)}
                             >
-                                No, cancel
+                                Cancel
                             </button>
                             <button
-                                className="py-2 px-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
+                                className="flex-1 py-3 px-4 text-base font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors"
                                 onClick={() => {
                                     handleDelete(product.id);
                                     setIsModalOpen(false);
                                 }}
                             >
-                                Yes, I&apos;m sure
+                                Delete
                             </button>
                         </div>
                     </div>
