@@ -148,3 +148,27 @@ model RefreshToken {
 
   @@index([userId])
 }
+
+model Banner {
+  id          String   @id @default(uuid())
+  title       String
+  description String?  @db.Text
+  image       String   @db.Text
+  imageId     String?
+  link        String?  @db.Text
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, order])
+}
+
+model SiteSettings {
+  id                Int      @id @default(autoincrement())
+  welcomeTitle      String   @default("Welcome to PKM Shop")
+  welcomeSubtitle   String?  @db.Text
+  showWelcome       Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

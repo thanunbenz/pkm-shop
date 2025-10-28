@@ -84,6 +84,16 @@ const Navbar = () => {
 
           {/* Right Icons */}
           <div className="flex items-center space-x-5">
+            {/* Session Info - Desktop Only */}
+            {session && (
+              <div className="hidden md:flex flex-col items-end text-sm">
+                <div className="text-white">
+                  สวัสดี, <span className="font-semibold">{session.user?.fname} {session.user?.lname}</span>
+                </div>
+                <div className="text-gray-300 text-xs">{session.user?.email}</div>
+              </div>
+            )}
+
             {/* Shopping Bag */}
             <button className="relative hover:opacity-80 transition-opacity">
               <FontAwesomeIcon icon={faBagShopping} size="lg" />
@@ -206,7 +216,7 @@ const Navbar = () => {
             ซอง
           </Link>
           <Link href="/kids" className="hover:text-blue-600 transition-colors">
-            เด็ก
+            เด็ค
           </Link>
           <Link href="/promo" className="hover:text-blue-600 transition-colors">
             โปรโมการ์ด
@@ -239,7 +249,7 @@ const Navbar = () => {
             className="block px-4 py-3 hover:bg-gray-50 hover:text-blue-600 transition-colors border-t border-gray-100"
             onClick={() => setMobileMenuOpen(false)}
           >
-            เด็ก
+            เด็ค
           </Link>
           <Link
             href="/promo"

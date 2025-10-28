@@ -54,3 +54,47 @@ html {
   scrollbar-width: thin;
   scrollbar-color: #134A9B #f1f5f9;
 }
+
+/* DataTables CSS */
+@import 'datatables.net-dt';
+@import 'datatables.net-responsive-dt';
+@import 'datatables.net-buttons-dt';
+
+/* Custom DataTables Styling */
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+  @apply border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  @apply ml-2;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+  @apply text-sm text-gray-700;
+}
+
+.dataTables_wrapper .dataTables_info {
+  @apply text-sm text-gray-600;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  @apply px-3 py-1 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors mx-0.5;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  @apply bg-blue-600 text-white border-blue-600 font-semibold hover:bg-blue-700;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  @apply bg-gray-300 cursor-not-allowed opacity-50;
+}
+
+table.dataTable thead th {
+  @apply bg-gray-100 border-b border-gray-200;
+}
+
+table.dataTable tbody td {
+  @apply border-b border-gray-200;
+}

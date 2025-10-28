@@ -69,6 +69,12 @@ export default function Header(props: any) {
               ></div>
 
               <div className="absolute right-0 z-20 w-48 py-2 mt-2 bg-white rounded-md shadow-xl">
+                <Link
+                  href="/"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-black"
+                >
+                  Back to Shop
+                </Link>
                 {session && (
                   <Link
                     href="/profile"
