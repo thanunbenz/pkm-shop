@@ -72,8 +72,9 @@ export async function GET(request: NextRequest) {
         // Build where clause
         const where: any = {};
         if (category) where.category = category;
-        if (issale !== undefined) where.issale = issale;
-        if (isrecommend !== undefined) where.isrecommend = isrecommend;
+        // Only filter if explicitly true (not false)
+        if (issale === true) where.issale = true;
+        if (isrecommend === true) where.isrecommend = true;
         if (search) {
             where.OR = [
                 { name: { contains: search } },

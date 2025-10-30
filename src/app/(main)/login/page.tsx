@@ -37,8 +37,12 @@ export default function LoginPage() {
         const form = e.target as HTMLFormElement;
         form.reset();
         setError("");
-        showToastSuccess("Login successful!");
-        router.replace("/");
+        showToastSuccess("เข้าสู่ระบบสำเร็จ!");
+
+        // Delay redirect to allow toast notification to be visible
+        setTimeout(() => {
+          router.replace("/");
+        }, 1500);
       } else {
         showToastError(result?.error || "Invalid email or password");
         setError(result?.error || "Invalid email or password");

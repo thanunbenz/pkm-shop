@@ -9,17 +9,52 @@ import {
   faMagnifyingGlass,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import { useCartStore } from "@/store/useCartStore";
 
 const Navbar = () => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { data: session } = useSession();
   const router = useRouter();
+  const cartStore = useCartStore();
+
+  // Prevent hydration mismatch - only run on client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Update cart count whenever cart store changes (client-side only)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const updateCount = () => {
+      setCartItemCount(cartStore.getTotalItems());
+    };
+
+    // Initial count
+    updateCount();
+
+    // Subscribe to changes
+    const unsubscribe = useCartStore.subscribe(updateCount);
+
+    return () => unsubscribe();
+  }, [isMounted, cartStore]);
+
+  // Load cart from server when logged in
+  useEffect(() => {
+    if (isMounted && session?.user?.id) {
+      cartStore.loadFromServer(Number(session.user.id));
+    }
+  }, [isMounted, session, cartStore]);
 
   // Handle click outside dropdown
   useEffect(() => {
+    if (!isDropdownOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -29,9 +64,7 @@ const Navbar = () => {
       }
     };
 
-    if (isDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -95,12 +128,14 @@ const Navbar = () => {
             )}
 
             {/* Shopping Bag */}
-            <button className="relative hover:opacity-80 transition-opacity">
+            <Link href="/cart" className="relative hover:opacity-80 transition-opacity">
               <FontAwesomeIcon icon={faBagShopping} size="lg" />
-              <span className="absolute -top-2 -right-4 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                0
-              </span>
-            </button>
+              {isMounted && cartItemCount > 0 && (
+                <span className="absolute -top-2 -right-4 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
 
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>
@@ -209,19 +244,19 @@ const Navbar = () => {
       {/* Category Links - Desktop */}
       <div className="hidden md:flex bg-white shadow-md sticky top-0 z-10">
         <div className="container mx-auto flex items-center justify-start text-gray-800 py-2 px-4 space-x-6">
-          <Link href="/sale" className="text-blue-600 font-medium hover:underline transition-all">
+          <Link href="/" className="text-blue-600 font-medium hover:underline transition-all">
             SALE
           </Link>
           <Link href="/pack" className="hover:text-blue-600 transition-colors">
             ซอง
           </Link>
-          <Link href="/kids" className="hover:text-blue-600 transition-colors">
+          <Link href="/deck" className="hover:text-blue-600 transition-colors">
             เด็ค
           </Link>
           <Link href="/promo" className="hover:text-blue-600 transition-colors">
             โปรโมการ์ด
           </Link>
-          <Link href="/accessories" className="hover:text-blue-600 transition-colors">
+          <Link href="/box-sleeve-coin" className="hover:text-blue-600 transition-colors">
             กล่อง สลีฟ เหรียญ
           </Link>
         </div>
@@ -231,7 +266,7 @@ const Navbar = () => {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white text-gray-800 shadow-md border-t border-gray-200">
           <Link
-            href="/sale"
+            href="/"
             className="block px-4 py-3 text-blue-600 font-medium hover:bg-gray-50 transition-colors"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -245,7 +280,7 @@ const Navbar = () => {
             ซอง
           </Link>
           <Link
-            href="/kids"
+            href="/deck"
             className="block px-4 py-3 hover:bg-gray-50 hover:text-blue-600 transition-colors border-t border-gray-100"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -259,7 +294,7 @@ const Navbar = () => {
             โปรโมการ์ด
           </Link>
           <Link
-            href="/accessories"
+            href="/box-sleeve-coin"
             className="block px-4 py-3 hover:bg-gray-50 hover:text-blue-600 transition-colors border-t border-gray-100"
             onClick={() => setMobileMenuOpen(false)}
           >

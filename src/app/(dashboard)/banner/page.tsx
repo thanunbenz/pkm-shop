@@ -26,6 +26,8 @@ export default function BannerManagement() {
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [uploading, setUploading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("/uploads/no_image_available.svg");
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,7 +68,7 @@ export default function BannerManagement() {
     }
   };
 
-  const handleImageUpload = async (file: File) => {
+  const handleImageSelect = (file: File) => {
     // Validation
     const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -81,26 +83,52 @@ export default function BannerManagement() {
       return;
     }
 
-    setUploading(true);
+    // เก็บไฟล์ไว้ใน state และสร้าง preview
+    setSelectedFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+  };
+
+  const uploadImage = async (file: File) => {
     const formDataUpload = new FormData();
     formDataUpload.append("file", file);
 
+    const res = await fetch("/api/v1/upload", {
+      method: "POST",
+      body: formDataUpload,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+    }
+
+    return data.file;
+  };
+
+  const handleImageUploadForEdit = async (file: File) => {
+    // สำหรับ editing mode ให้อัพโหลดทันที
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+    if (!allowedTypes.includes(file.type)) {
+      showToastError("รองรับเฉพาะไฟล์ JPG, PNG, WEBP เท่านั้น");
+      return;
+    }
+
+    if (file.size > maxSize) {
+      showToastError("ขนาดไฟล์ต้องไม่เกิน 5MB");
+      return;
+    }
+
+    setUploading(true);
     try {
-      const res = await fetch("/api/v1/upload", {
-        method: "POST",
-        body: formDataUpload,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
-      }
-
+      const uploadedFile = await uploadImage(file);
       setFormData(prev => ({
         ...prev,
-        image: data.file.path,
-        imageId: String(data.file.id),
+        image: uploadedFile.path,
+        imageId: String(uploadedFile.id),
       }));
       showToastSuccess(`อัปโหลด ${file.name} สำเร็จ`);
     } catch (error) {
@@ -114,19 +142,40 @@ export default function BannerManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setUploading(true);
 
     // Validation
     if (!formData.title.trim()) {
       showToastError("กรุณากรอกชื่อ Banner");
+      setUploading(false);
       return;
     }
 
-    if (!formData.image || formData.image === "/uploads/no_image_available.svg") {
-      showToastError("กรุณาอัปโหลดรูปภาพ Banner");
-      return;
-    }
+    let uploadedImageId = formData.imageId;
+    let uploadedImagePath = formData.image;
 
     try {
+      // สำหรับ CREATE mode: อัพโหลดรูปก่อน
+      if (!editingBanner && selectedFile) {
+        try {
+          const uploadedFile = await uploadImage(selectedFile);
+          uploadedImageId = String(uploadedFile.id);
+          uploadedImagePath = uploadedFile.path;
+        } catch (uploadError) {
+          console.error('Upload failed:', uploadError);
+          showToastError('อัปโหลดรูปภาพไม่สำเร็จ');
+          setUploading(false);
+          return;
+        }
+      }
+
+      // สำหรับ CREATE mode: ต้องมีรูป
+      if (!editingBanner && uploadedImagePath === "/uploads/no_image_available.svg") {
+        showToastError("กรุณาอัปโหลดรูปภาพ Banner");
+        setUploading(false);
+        return;
+      }
+
       const url = editingBanner
         ? `/api/v1/banners/${editingBanner.id}`
         : "/api/v1/banners";
@@ -135,6 +184,8 @@ export default function BannerManagement() {
       // Auto-set order for new banners
       const dataToSend = {
         ...formData,
+        image: uploadedImagePath,
+        imageId: uploadedImageId,
         order: editingBanner ? formData.order : banners.length
       };
 
@@ -157,6 +208,19 @@ export default function BannerManagement() {
       console.error("Error saving banner:", error);
       const errorMessage = error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
       showToastError(errorMessage);
+
+      // ถ้าอัพโหลดรูปสำเร็จแล้วแต่สร้าง Banner ไม่สำเร็จ ให้ลบรูปออก (เฉพาะ CREATE mode)
+      if (!editingBanner && uploadedImageId && uploadedImageId !== formData.imageId) {
+        try {
+          await fetch(`/api/v1/upload/${uploadedImageId}`, {
+            method: 'DELETE',
+          });
+        } catch (deleteError) {
+          console.error("Failed to delete image:", deleteError);
+        }
+      }
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -169,11 +233,6 @@ export default function BannerManagement() {
       });
 
       if (!response.ok) throw new Error("Failed to delete banner");
-
-      // Delete associated image if exists
-      if (imageId) {
-        await fetch(`/api/v1/upload/${imageId}`, { method: "DELETE" });
-      }
 
       showToastSuccess("ลบ Banner สำเร็จ");
       fetchBanners();
@@ -232,6 +291,8 @@ export default function BannerManagement() {
     setIsModalOpen(false);
     setEditingBanner(null);
     setUploading(false);
+    setSelectedFile(null);
+    setPreviewUrl("/uploads/no_image_available.svg");
   };
 
   const handleDragStart = (index: number) => {
@@ -319,6 +380,7 @@ export default function BannerManagement() {
                 src={banner.image}
                 alt={banner.title}
                 fill
+                sizes="(max-width: 768px) 100vw, 256px"
                 className="object-cover"
               />
             </div>
@@ -432,12 +494,30 @@ export default function BannerManagement() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
-                {editingBanner ? "แก้ไข Banner" : "เพิ่ม Banner"}
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {editingBanner ? "แก้ไข Banner" : "เพิ่ม Banner"}
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+                >
+                  <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                  </svg>
+                  <span className="sr-only">Close modal</span>
+                </button>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Title */}
@@ -497,14 +577,15 @@ export default function BannerManagement() {
                   </label>
 
                   {/* Preview หรือ Upload Area */}
-                  {formData.image && formData.image !== "/uploads/no_image_available.svg" ? (
+                  {(editingBanner ? formData.image : previewUrl) !== "/uploads/no_image_available.svg" ? (
                     <div className="space-y-2">
                       {/* Image Preview */}
                       <div className="relative w-full h-64 border-2 border-gray-300 rounded-lg overflow-hidden">
                         <Image
-                          src={formData.image}
+                          src={editingBanner ? formData.image : previewUrl}
                           alt="Banner Preview"
                           fill
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover"
                         />
                         {/* Overlay with change button */}
@@ -524,7 +605,9 @@ export default function BannerManagement() {
                         className="hidden"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) handleImageUpload(file);
+                          if (file) {
+                            editingBanner ? handleImageUploadForEdit(file) : handleImageSelect(file);
+                          }
                         }}
                       />
                     </div>
@@ -547,41 +630,35 @@ export default function BannerManagement() {
                         e.preventDefault();
                         e.currentTarget.classList.remove("border-blue-400", "bg-blue-50");
                         const file = e.dataTransfer.files?.[0];
-                        if (file) handleImageUpload(file);
+                        if (file) {
+                          editingBanner ? handleImageUploadForEdit(file) : handleImageSelect(file);
+                        }
                       }}
                     >
-                      {uploading ? (
-                        <div className="py-4">
-                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
-                          <p className="text-blue-600 font-medium">กำลังอัปโหลด...</p>
-                          <p className="text-xs text-gray-500 mt-1">กรุณารอสักครู่</p>
-                        </div>
-                      ) : (
-                        <>
-                          <input
-                            type="file"
-                            id="bannerImageNew"
-                            accept="image/jpeg,image/jpg,image/png,image/webp"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file);
-                            }}
-                          />
-                          <label htmlFor="bannerImageNew" className="cursor-pointer">
-                            <FontAwesomeIcon icon={faFileImage} size="3x" className="text-gray-400 mb-3" />
-                            <p className="text-base font-medium text-gray-700 mb-1">
-                              คลิกเพื่ออัปโหลด หรือ ลากไฟล์มาวางที่นี่
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              รองรับ JPG, PNG, WEBP (ขนาดไม่เกิน 5MB)
-                            </p>
-                            <p className="text-xs text-blue-600 mt-2">
-                              แนะนำขนาด 1920 x 500 pixels สำหรับผลลัพธ์ที่ดีที่สุด
-                            </p>
-                          </label>
-                        </>
-                      )}
+                      <input
+                        type="file"
+                        id="bannerImageNew"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            editingBanner ? handleImageUploadForEdit(file) : handleImageSelect(file);
+                          }
+                        }}
+                      />
+                      <label htmlFor="bannerImageNew" className="cursor-pointer">
+                        <FontAwesomeIcon icon={faFileImage} size="3x" className="text-gray-400 mb-3" />
+                        <p className="text-base font-medium text-gray-700 mb-1">
+                          คลิกเพื่ออัปโหลด หรือ ลากไฟล์มาวางที่นี่
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          รองรับ JPG, PNG, WEBP (ขนาดไม่เกิน 5MB)
+                        </p>
+                        <p className="text-xs text-blue-600 mt-2">
+                          แนะนำขนาด 1920 x 500 pixels สำหรับผลลัพธ์ที่ดีที่สุด
+                        </p>
+                      </label>
                     </div>
                   )}
                 </div>

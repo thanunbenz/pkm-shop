@@ -18,17 +18,28 @@ export const config = {
 const MIME_SIGNATURES: { [key: string]: number[][] } = {
     'image/jpeg': [[0xFF, 0xD8, 0xFF]],
     'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+    'image/webp': [[0x52, 0x49, 0x46, 0x46]],
     'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
 }
 
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
 const ALLOWED_EXTENSIONS: { [key: string]: string } = {
     'image/jpeg': '.jpg',
     'image/png': '.png',
+    'image/webp': '.webp',
     'application/pdf': '.pdf',
 }
 
 function validateFileType(buffer: Buffer, mimeType: string): boolean {
+    // Special handling for WebP (RIFF container format)
+    if (mimeType === 'image/webp') {
+        // Check RIFF header at bytes 0-3
+        const isRIFF = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46
+        // Check WEBP signature at bytes 8-11
+        const isWEBP = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+        return isRIFF && isWEBP
+    }
+
     const signatures = MIME_SIGNATURES[mimeType]
     if (!signatures) return false
 

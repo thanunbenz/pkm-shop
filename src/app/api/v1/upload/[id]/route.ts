@@ -6,9 +6,46 @@ import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+// MIME type signatures for validation
+const MIME_SIGNATURES: { [key: string]: number[][] } = {
+    'image/jpeg': [[0xFF, 0xD8, 0xFF]],
+    'image/png': [[0x89, 0x50, 0x4E, 0x47]],
+    'image/webp': [[0x52, 0x49, 0x46, 0x46]],
+    'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+}
+
+function validateFileType(buffer: Buffer, fileExtension: string): boolean {
+    // Special handling for WebP (RIFF container format)
+    if (fileExtension === '.webp') {
+        // Check RIFF header at bytes 0-3
+        const isRIFF = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46
+        // Check WEBP signature at bytes 8-11
+        const isWEBP = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+        return isRIFF && isWEBP
+    }
+
+    // Map extensions to MIME types
+    const extToMime: { [key: string]: string } = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.pdf': 'application/pdf',
+    }
+
+    const mimeType = extToMime[fileExtension]
+    if (!mimeType) return false
+
+    const signatures = MIME_SIGNATURES[mimeType]
+    if (!signatures) return false
+
+    return signatures.some(signature => {
+        return signature.every((byte, index) => buffer[index] === byte)
+    })
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         if (!id) {
             return NextResponse.json(
@@ -17,8 +54,17 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
             )
         }
 
+        // Convert string id to number for Prisma
+        const fileId = parseInt(id);
+        if (isNaN(fileId)) {
+            return NextResponse.json(
+                { error: 'Invalid file ID' },
+                { status: 400 }
+            )
+        }
+
         const existingFile = await prisma.file.findUnique({
-            where: { id: id }
+            where: { id: fileId }
         })
 
         if (!existingFile) {
@@ -27,16 +73,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
                 { status: 404 }
             )
         }
-        const filePath = path.join(process.cwd(), 'public/uploads', existingFile.name)
+
+        // Extract filename from path (e.g., "/uploads/file.png" -> "file.png")
+        const filename = existingFile.path.startsWith('/uploads/')
+            ? existingFile.path.replace('/uploads/', '')
+            : existingFile.name;
+
+        const filePath = path.join(process.cwd(), 'public', 'uploads', filename);
 
         try {
-            await fs.unlink(filePath)
+            await fs.unlink(filePath);
+            console.log(`Successfully deleted file: ${filePath}`);
         } catch (err) {
-            console.error('Error deleting file:', err)
-            return NextResponse.json(
-                { error: 'Failed to delete file from server' },
-                { status: 500 }
-            )
+            console.error('Error deleting file:', err);
+            console.error('Attempted path:', filePath);
+            // Don't return error here, continue to delete from database
         }
 
         await prisma.file.delete({
@@ -60,17 +111,30 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 }
 
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-    const { id } = params;
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const fileId = parseInt(id);
+    if (isNaN(fileId)) {
+        return NextResponse.json({ error: 'Invalid file ID' }, { status: 400 })
+    }
     const file = await prisma.file.findUnique({
-        where: { id: id }
+        where: { id: fileId }
     })
     return NextResponse.json(file)
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-    const { id } = params;
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     try {
+        // Convert string id to number for Prisma
+        const fileId = parseInt(id);
+        if (isNaN(fileId)) {
+            return NextResponse.json(
+                { error: 'Invalid file ID' },
+                { status: 400 }
+            )
+        }
+
         const formData = await request.formData();
         const fileField = formData.get("file");
         if (!fileField || !(fileField instanceof File)) {
@@ -80,12 +144,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             );
         }
 
-        const allowedExtensions = [".pdf", ".jpg", ".png"];
+        const allowedExtensions = [".pdf", ".jpg", ".png", ".webp"];
         const file = fileField as File;
         const fileExtension = path.extname(file.name).toLowerCase();
         if (!allowedExtensions.includes(fileExtension)) {
             return NextResponse.json(
-                { error: "Only PDF, JPG, and PNG files are allowed" },
+                { error: "Only PDF, JPG, PNG, and WebP files are allowed" },
                 { status: 400 }
             );
         }
@@ -102,8 +166,20 @@ export async function PUT(request: Request, { params }: { params: { id: string }
             );
         }
 
+        // Read file buffer for validation
+        const buffer = Buffer.from(await file.arrayBuffer());
+
+        // Validate file content matches extension
+        const isValidType = validateFileType(buffer, fileExtension);
+        if (!isValidType) {
+            return NextResponse.json(
+                { error: "File content does not match file type" },
+                { status: 400 }
+            );
+        }
+
         const existingFile = await prisma.file.findUnique({
-            where: { id: id },
+            where: { id: fileId },
         });
 
         if (!existingFile) {
@@ -112,70 +188,68 @@ export async function PUT(request: Request, { params }: { params: { id: string }
                 { status: 404 }
             );
         }
-        const filePath = path.join(process.cwd(), 'public/uploads', existingFile.name)
 
+        // First, upload new file
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name
+            .replace(/\s+/g, "_")
+            .replace(/[^\w.-]/g, "");
+        const uniqueFilename = `${sanitizedFileName}_${timestamp}${fileExtension}`;
+        const newPath = `/uploads/${uniqueFilename}`;
+
+        const uploadDir = path.join(process.cwd(), "public", "uploads");
         try {
-            await fs.unlink(filePath)
-        } catch (err) {
-            console.error('Error deleting file:', err)
-            return NextResponse.json(
-                { error: 'Failed to delete file from server' },
-                { status: 500 }
-            )
+            await fs.access(uploadDir);
+        } catch {
+            await fs.mkdir(uploadDir, { recursive: true });
         }
 
-        const product = await prisma.product.updateMany({
-            where: { imageId: existingFile.id },
+        // Use the buffer we already read for validation
+        const newFilePath = path.join(uploadDir, uniqueFilename);
+        await fs.writeFile(newFilePath, buffer);
+
+        // Update file record in database
+        const updatedFile = await prisma.file.update({
+            where: { id: fileId },
             data: {
-                imageId: "-",
-                image: "/uploads/no_image_available.svg",
+                name: uniqueFilename,
+                path: newPath,
+                size: file.size,
             },
         });
 
-        if (product) {
-            const timestamp = Date.now();
-            const sanitizedFileName = file.name
-                .replace(/\s+/g, "_")
-                .replace(/[^\w.-]/g, "");
-            const uniqueFilename = `${sanitizedFileName}_${timestamp}${fileExtension}`;
-            const newPath = `/uploads/${uniqueFilename}`;
+        // Update products that use this file (imageId is stored as string)
+        await prisma.product.updateMany({
+            where: { imageId: String(existingFile.id) },
+            data: {
+                image: newPath,
+            },
+        });
 
-            const uploadDir = path.join(process.cwd(), "public", "uploads");
-            try {
-                await fs.access(uploadDir);
-            } catch {
-                await fs.mkdir(uploadDir, { recursive: true });
-            }
+        // Update banners that use this file (imageId is stored as string)
+        await prisma.banner.updateMany({
+            where: { imageId: String(existingFile.id) },
+            data: {
+                image: newPath,
+            },
+        });
 
-            const oldFilePath = path.join(
-                process.cwd(),
-                "public",
-                "uploads",
-                existingFile.name
-            );
-            try {
-                await fs.unlink(oldFilePath);
-            } catch (err) {
-                if (err instanceof Error && (err as any).code !== "ENOENT") {
-                    console.error("Failed to delete old file:", err);
-                }
-            }
+        // Delete old file after everything is updated
+        const oldFilename = existingFile.path.startsWith('/uploads/')
+            ? existingFile.path.replace('/uploads/', '')
+            : existingFile.name;
 
-            const buffer = Buffer.from(await file.arrayBuffer());
-            const filePath = path.join(uploadDir, uniqueFilename);
-            await fs.writeFile(filePath, buffer);
+        const oldFilePath = path.join(process.cwd(), 'public', 'uploads', oldFilename);
 
-            const updatedFile = await prisma.file.update({
-                where: { id: id },
-                data: {
-                    name: uniqueFilename,
-                    path: newPath,
-                    size: file.size,
-                },
-            });
-
-            return NextResponse.json({ file: updatedFile });
+        try {
+            await fs.unlink(oldFilePath);
+            console.log(`Successfully deleted old file: ${oldFilePath}`);
+        } catch (err) {
+            console.error('Error deleting old file:', err);
+            // Continue even if deletion fails
         }
+
+        return NextResponse.json({ file: updatedFile });
     } catch (error) {
         console.error("Error updating file:", error);
         return NextResponse.json(

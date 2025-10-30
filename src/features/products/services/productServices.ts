@@ -23,7 +23,7 @@ export const getProducts = async () => {
 // Read - ดึงข้อมูลสินค้าตาม ID
 export const getProductById = async (id: string) => {
         return await prisma.product.findUnique({
-            where: { id: id },
+            where: { id: parseInt(id) },
             include: {
                 code: true,
             },
@@ -32,7 +32,7 @@ export const getProductById = async (id: string) => {
 // Update - อัพเดทข้อมูลสินค้า
 export const updateProduct = async (id: string, product: Prisma.ProductUpdateInput) => {
     const updatedProduct = await prisma.product.update({
-        where: { id },
+        where: { id: parseInt(id) },
         data: product,
     });
     return updatedProduct;
@@ -41,7 +41,7 @@ export const updateProduct = async (id: string, product: Prisma.ProductUpdateInp
 // Delete - ลบข้อมูลสินค้า
 export const deleteProduct = async (id: string) => {
     const deletedProduct = await prisma.product.delete({
-        where: { id },
+        where: { id: parseInt(id) },
     });
     return deletedProduct;
 };

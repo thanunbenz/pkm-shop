@@ -11,6 +11,11 @@ interface SiteSettings {
   showWelcome: boolean;
 }
 
+interface Code {
+  id: number;
+  isUsed: boolean;
+}
+
 interface Product {
   id: number;
   name: string;
@@ -18,6 +23,7 @@ interface Product {
   discountprice: number;
   issale: boolean;
   image: string | null;
+  code?: Code[];
 }
 
 export default function Page() {

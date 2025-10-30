@@ -91,9 +91,44 @@ export async function DELETE(
 
         const { id } = await params;
 
+        // Get banner first to retrieve imageId
+        const bannerToDelete = await prisma.banner.findUnique({
+            where: { id }
+        });
+
+        if (!bannerToDelete) {
+            return NextResponse.json(
+                { success: false, error: "Banner not found" },
+                { status: 404 }
+            );
+        }
+
+        console.log(`Deleting banner ${id} with imageId: ${bannerToDelete.imageId}`);
+
+        // Delete the banner
         const banner = await prisma.banner.delete({
             where: { id }
         });
+
+        // Delete associated image if exists
+        if (bannerToDelete.imageId && bannerToDelete.imageId !== "-") {
+            console.log(`Calling DELETE /api/v1/upload/${bannerToDelete.imageId}`);
+            try {
+                const deleteResponse = await fetch(`${request.nextUrl.origin}/api/v1/upload/${bannerToDelete.imageId}`, {
+                    method: "DELETE",
+                    headers: {
+                        cookie: request.headers.get("cookie") || "",
+                    },
+                });
+                const deleteResult = await deleteResponse.json();
+                console.log(`Image deletion result:`, deleteResult);
+            } catch (imageError) {
+                console.error("Failed to delete banner image:", imageError);
+                // Continue even if image deletion fails
+            }
+        } else {
+            console.log(`No image to delete (imageId: ${bannerToDelete.imageId})`);
+        }
 
         return NextResponse.json({
             success: true,

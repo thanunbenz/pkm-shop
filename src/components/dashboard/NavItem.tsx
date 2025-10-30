@@ -15,7 +15,9 @@ export default function NavItem({ href, icon, name }: Props) {
   const activeClass = "bg-gray-600 bg-opacity-25 text-gray-100 border-gray-100";
   const inactiveClass =
     "border-gray-900 text-gray-500 hover:bg-gray-600 hover:bg-opacity-25 hover:text-gray-100";
-  const isActive = pathname === `${ href }`;
+
+  // Check if current path starts with the href (for nested routes like /product/123)
+  const isActive = pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <Link

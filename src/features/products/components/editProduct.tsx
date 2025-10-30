@@ -10,6 +10,16 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Loading from "@/components/ui/Loading";
 import { showToastError, showToastSuccess } from "@/lib/utils/toast";
+import CodeDataTable from "@/components/ui/CodeDataTable";
+import AddCodeButton from "@/components/ui/AddCodeButton";
+
+interface Code {
+    id: number;
+    code: string;
+    isUsed: boolean;
+    createdAt: string;
+    productId: number;
+}
 
 interface Product {
     id: string;
@@ -22,7 +32,7 @@ interface Product {
     category: string;
     image: string;
     imageId: string;
-    code: [];
+    code: Code[];
 }
 
 export default function Page() {
@@ -54,6 +64,8 @@ export default function Page() {
     const [imageId, setImageId] = useState("-");
     const [uploading, setUploading] = useState(false)
     const [imageName, setImageName] = useState("");
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [editingCode, setEditingCode] = useState<any>(null);
 
     const fetchProduct = async () => {
         try {
@@ -102,7 +114,7 @@ export default function Page() {
 
                 const data = await res.json();
                 setImage(data.file.path);
-                setImageId(data.file.id);
+                setImageId(String(data.file.id));
                 setImageName(file.name);
                 showToastSuccess('Upload successful');
                 setUploading(true);
@@ -124,7 +136,7 @@ export default function Page() {
 
                 const data = await res.json();
                 setImage(data.file.path);
-                setImageId(data.file.id);
+                setImageId(String(data.file.id));
                 setImageName(file.name);
                 showToastSuccess('Upload successful');
                 setUploading(true);
@@ -146,7 +158,7 @@ export default function Page() {
             issale: issale,
             isrecommend: isrecommend,
             image: image || "/uploads/no_image_available.svg",
-            imageId: imageId || "-",
+            imageId: String(imageId) || "-",
             category: category
         }
         const response = await fetch(`/api/v1/products/${id}`, {
@@ -160,10 +172,12 @@ export default function Page() {
         if (response.ok) {
             toast.success('Product updated successfully');
             fetchProduct();
+            setIsOpen(false);
         } else {
-            toast.error('Failed to update product');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Update failed:', errorData);
+            toast.error(errorData.error || 'Failed to update product');
         }
-        setIsOpen(false);
         setUploading(false);
     };
 
@@ -171,15 +185,32 @@ export default function Page() {
         setIsOpen(!isOpen);
     };
 
+    const handleCodeAdded = () => {
+        setRefreshTrigger(prev => prev + 1);
+        fetchProduct();
+    };
+
+    const handleEditCode = (code: any) => {
+        setEditingCode(code);
+    };
+
+    const handleCloseEdit = () => {
+        setEditingCode(null);
+    };
+
     return (
         <>
             {isLoading && <><Loading /></>}
-            <div className="flex mb-4 ">
+            <div className="flex mb-4 justify-between items-center">
                 <button className="inline-flex items-center px-4 py-2 bg-[#134A9B] hover:bg-blue-600 text-white text-sm font-medium rounded-full">
                     <Link href="/product"><FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Product List</Link>
                 </button>
-
-
+                <AddCodeButton
+                    productId={id as string}
+                    onCodeAdded={handleCodeAdded}
+                    editingCode={editingCode}
+                    onCloseEdit={handleCloseEdit}
+                />
             </div>
             <div className="flex space-x-6">
                 <div className="flex-shrink-0 w-72 h-72">
@@ -196,9 +227,9 @@ export default function Page() {
                     <p className="text font-medium text-lg text-gray-500">
                         {product.description}
                     </p>
-                    <p className="text font-medium text-lg text-gray-500">
-                        Stock: {product.code.length}
-                    </p>
+                    <div className="text-sm text-green-600 mb-3">
+                        {product.code.filter((c) => !c.isUsed).length} - In Stock.
+                    </div>
                     <button
                         className="block text-white bg-[#134A9B] hover:bg-blue-600 font-medium rounded-full text-sm px-5 py-2.5 text-center uppercase w-32 h-10"
                         type="button"
@@ -209,62 +240,73 @@ export default function Page() {
                 </div>
             </div>
 
+            {/* Code List Section */}
+            <div className="mt-8">
+                <hr className="border-gray-300 mb-4 border" />
+                <h3 className="text-2xl font-bold text-gray-700 mb-4">Code List</h3>
+                <CodeDataTable
+                    productId={id as string}
+                    refreshTrigger={refreshTrigger}
+                    onEditCode={handleEditCode}
+                />
+            </div>
+
             {/* Modal */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center w-full h-full bg-black bg-opacity-50">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+                    onClick={() => {setUploading(false); toggleModal();}}
+                >
                     <div
-                        className="relative bg-white rounded-lg shadow dark:bg-gray-700 max-w-md w-full"
-                        onClick={(e) => e.stopPropagation()} // Prevent closing on modal content click
+                        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal header */}
-                        <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Edit Product
-                            </h3>
-                            <button
-                                type="button"
-                                onClick={() => {setUploading(false); toggleModal();}}
-                                className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                            >
-                                <FontAwesomeIcon icon={faTimes} size="lg" />
-                                <span className="sr-only">Close modal</span>
-                            </button>
-                        </div>
+                        <div className="p-6">
+                            {/* Modal header */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-2xl font-bold text-gray-900">
+                                    Edit Product
+                                </h2>
+                                <button
+                                    type="button"
+                                    onClick={() => {setUploading(false); toggleModal();}}
+                                    className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center"
+                                >
+                                    <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                                    </svg>
+                                    <span className="sr-only">Close modal</span>
+                                </button>
+                            </div>
 
                         {/* Modal body */}
-                        <form className="p-4 md:p-5" onSubmit={handleUpdateProduct}>
-                            <div className="grid gap-4 mb-4 grid-cols-2">
+                        <form className="space-y-4" onSubmit={handleUpdateProduct}>
                                 {/* Name */}
-                                <div className="col-span-2">
-                                    <label
-                                        htmlFor="name"
-                                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        Name
+                                <div>
+                                    <label htmlFor="name" className="block text-sm font-medium mb-2">
+                                        ชื่อสินค้า *
                                     </label>
                                     <input
                                         type="text"
                                         name="name"
                                         id="name"
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
+                                        className="w-full border rounded px-3 py-2"
                                         placeholder="Product name"
                                         required
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                     />
                                 </div>
+
                                 {/* Description */}
-                                <div className="col-span-2">
-                                    <label
-                                        htmlFor="description"
-                                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        Description
+                                <div>
+                                    <label htmlFor="description" className="block text-sm font-medium mb-2">
+                                        คำอธิบาย
                                     </label>
                                     <textarea
                                         id="description"
-                                        rows={4}
-                                        className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
+                                        rows={3}
+                                        className="w-full border rounded px-3 py-2"
                                         placeholder="Write product description"
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
@@ -272,100 +314,16 @@ export default function Page() {
                                     />
                                 </div>
 
-                                {/* Is Recommend */}
-                                <div className="col-span-2">
-                                    <label
-                                        htmlFor="isRecommend"
-                                        className="flex items-center gap-3 mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            id="isRecommend"
-                                            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded"
-                                            checked={isrecommend}
-                                            onChange={(e) => setIsrecommend(e.target.checked)}
-                                        />
-                                        <span>Recommend this product</span>
-                                    </label>
-                                </div>
-
-                                {/* Is Sale */}
-                                <div className="col-span-2">
-                                    <label
-                                        htmlFor="isSale"
-                                        className="flex items-center gap-3 mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            id="isSale"
-                                            className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600"
-                                            checked={issale}
-                                            onChange={(e) => setIssale(e.target.checked)}
-                                        />
-                                        <span>On Sale</span>
-                                    </label>
-                                </div>
-
-                                {/* Price */}
-                                <div className="col-span-2 sm:col-span-1">
-                                    <label
-                                        htmlFor="price"
-                                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        Price
-                                    </label>
-                                    <input
-                                        type="number"
-                                        name="price"
-                                        id="price"
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-                                        placeholder={price.toString()}
-                                        required
-                                        value={price}
-                                        onChange={(e) =>
-                                            setPrice(() => Math.max(Number(e.target.value), 1))
-                                        }
-                                    />
-                                </div>
-
-                                {/* Discount Price (conditionally rendered) */}
-                                {issale && (
-                                    <div className="col-span-2 sm:col-span-1">
-                                        <label
-                                            htmlFor="discountPrice"
-                                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                        >
-                                            Discount Price
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="discountPrice"
-                                            id="discountPrice"
-                                            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-                                            placeholder="2499"
-                                            value={discountprice}
-                                            onChange={(e) =>
-                                                setDiscountprice(() =>
-                                                    Math.max(Number(e.target.value), 1)
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                )}
-
                                 {/* Category */}
-                                <div className="col-span-2">
-                                    <label
-                                        htmlFor="category"
-                                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                    >
-                                        Category
+                                <div>
+                                    <label htmlFor="category" className="block text-sm font-medium mb-2">
+                                        หมวดหมู่
                                     </label>
                                     <select
                                         id="category"
-                                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-                                        value={category} // ค่าใน select คือค่าใน state
-                                        onChange={(e) => setCategory(e.target.value)} // อัปเดต state เมื่อมีการเปลี่ยนแปลง
+                                        className="w-full border rounded px-3 py-2"
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
                                     >
                                         <option value="PACK">Pack</option>
                                         <option value="BOX">Box</option>
@@ -373,75 +331,184 @@ export default function Page() {
                                     </select>
                                 </div>
 
-                                {!uploading && (
-                                    <div className="col-span-2">
-                                        <label
-                                            htmlFor="image"
-                                            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                                        >
-                                            Upload Image
+                                {/* Price and Discount Price */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="price" className="block text-sm font-medium mb-2">
+                                            ราคา *
                                         </label>
-                                        <div className="flex items-center justify-center w-full"
+                                        <input
+                                            type="number"
+                                            name="price"
+                                            id="price"
+                                            className="w-full border rounded px-3 py-2"
+                                            placeholder={price.toString()}
+                                            required
+                                            value={price}
+                                            onChange={(e) => setPrice(() => Math.max(Number(e.target.value), 1))}
+                                        />
+                                    </div>
+
+                                    {issale && (
+                                        <div>
+                                            <label htmlFor="discountPrice" className="block text-sm font-medium mb-2">
+                                                ราคาลด
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="discountPrice"
+                                                id="discountPrice"
+                                                className="w-full border rounded px-3 py-2"
+                                                placeholder="2499"
+                                                value={discountprice}
+                                                onChange={(e) => setDiscountprice(() => Math.max(Number(e.target.value), 1))}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Checkboxes */}
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isRecommend"
+                                            className="w-4 h-4"
+                                            checked={isrecommend}
+                                            onChange={(e) => setIsrecommend(e.target.checked)}
+                                        />
+                                        <label htmlFor="isRecommend" className="text-sm font-medium">
+                                            สินค้าแนะนำ
+                                        </label>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isSale"
+                                            className="w-4 h-4"
+                                            checked={issale}
+                                            onChange={(e) => setIssale(e.target.checked)}
+                                        />
+                                        <label htmlFor="isSale" className="text-sm font-medium">
+                                            ลดราคา
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Image Upload */}
+                                <div>
+                                    <label className="block text-sm font-medium mb-2">
+                                        รูปภาพสินค้า
+                                        <span className="text-xs text-gray-500 ml-2">(JPG, PNG, WEBP | Max 5MB)</span>
+                                    </label>
+
+                                    {/* Preview หรือ Upload Area */}
+                                    {image && image !== "/uploads/no_image_available.svg" ? (
+                                        <div className="space-y-2">
+                                            {/* Image Preview */}
+                                            <div className="relative w-full h-64 border-2 border-gray-300 rounded-lg overflow-hidden">
+                                                <Image
+                                                    src={image}
+                                                    alt="Product Preview"
+                                                    fill
+                                                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                                    className="object-cover"
+                                                />
+                                                {/* Overlay with change button */}
+                                                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center group">
+                                                    <label
+                                                        htmlFor="productImage"
+                                                        className="opacity-0 group-hover:opacity-100 cursor-pointer bg-white text-gray-800 px-4 py-2 rounded-lg font-medium transition-opacity"
+                                                    >
+                                                        เปลี่ยนรูปภาพ
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                id="productImage"
+                                                accept="image/jpeg,image/jpg,image/png,image/webp"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) handleImageUpload(file);
+                                                }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        // Upload Area
+                                        <div
+                                            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                                uploading
+                                                    ? "border-blue-400 bg-blue-50"
+                                                    : "border-gray-300 hover:border-blue-400 hover:bg-gray-50 cursor-pointer"
+                                            }`}
                                             onDragOver={(e) => {
                                                 e.preventDefault();
-                                                e.stopPropagation();
+                                                e.currentTarget.classList.add("border-blue-400", "bg-blue-50");
+                                            }}
+                                            onDragLeave={(e) => {
+                                                e.currentTarget.classList.remove("border-blue-400", "bg-blue-50");
                                             }}
                                             onDrop={(e) => {
                                                 e.preventDefault();
-                                                e.stopPropagation();
+                                                e.currentTarget.classList.remove("border-blue-400", "bg-blue-50");
                                                 const file = e.dataTransfer.files?.[0];
-                                                if (file) {
-                                                    handleImageUpload(file);
-                                                }
+                                                if (file) handleImageUpload(file);
                                             }}
                                         >
-                                            <label
-                                                htmlFor="image"
-                                                className="flex flex-col items-center justify-center w-full h-32 bg-gray-50 border-2 border-dashed rounded-lg cursor-pointer dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                            >
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <FontAwesomeIcon
-                                                        icon={faFileImage}
-                                                        size="xl"
-                                                        style={{ color: "#9ca3af" }}
-                                                    />
-                                                    <p className="mt-3 mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                        <span className="font-semibold">
-                                                            Click to upload
-
-                                                        </span>{" "}
-                                                        or drag and drop
-                                                    </p>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                        PNG, JPG, GIF (Max: 10MB)
-                                                    </p>
+                                            {uploading ? (
+                                                <div className="py-4">
+                                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-3"></div>
+                                                    <p className="text-blue-600 font-medium">กำลังอัปโหลด...</p>
+                                                    <p className="text-xs text-gray-500 mt-1">กรุณารอสักครู่</p>
                                                 </div>
-                                                <input
-                                                    id="image"
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            handleImageUpload(file);
-                                                        }
-                                                    }}
-                                                />
-                                            </label>
+                                            ) : (
+                                                <>
+                                                    <input
+                                                        type="file"
+                                                        id="productImageNew"
+                                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) handleImageUpload(file);
+                                                        }}
+                                                    />
+                                                    <label htmlFor="productImageNew" className="cursor-pointer">
+                                                        <FontAwesomeIcon icon={faFileImage} size="3x" className="text-gray-400 mb-3" />
+                                                        <p className="text-base font-medium text-gray-700 mb-1">
+                                                            คลิกเพื่ออัปโหลด หรือ ลากไฟล์มาวางที่นี่
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            รองรับ JPG, PNG, WEBP (ขนาดไม่เกิน 5MB)
+                                                        </p>
+                                                    </label>
+                                                </>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
 
-                            {/* Submit button */}
-                            <button
-                                type="submit"
-                                className="text-white inline-flex items-center bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                            >
-                                update product
-                            </button>
-                        </form>
+                                {/* Buttons */}
+                                <div className="flex gap-2 pt-4">
+                                    <button
+                                        type="submit"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
+                                    >
+                                        บันทึก
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {setUploading(false); toggleModal();}}
+                                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded"
+                                    >
+                                        ยกเลิก
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

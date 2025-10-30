@@ -69,7 +69,7 @@ export default function Footer() {
       </div>
       <div className="bg-white text-gray-700 py-4">
         <p className="text-center text-sm">
-          © 2023 Card Game Store. This website is in no way affiliated with
+          © {new Date().getFullYear()} PKM Shop. This website is in no way affiliated with
           TPCi, Nintendo, Creatures, or Game Freak.
         </p>
       </div>

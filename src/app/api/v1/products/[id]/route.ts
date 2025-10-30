@@ -8,6 +8,15 @@ import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         const { id } = await params;
+
+        // Validate ID
+        if (!id || isNaN(parseInt(id))) {
+            return NextResponse.json(
+                { success: false, error: "Invalid product ID" },
+                { status: 400 }
+            );
+        }
+
         const product = await getProductById(id);
 
         if (!product) {
@@ -19,9 +28,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
         return NextResponse.json({ success: true, data: product });
     } catch (error) {
-        console.error("Error fetching product:", error);
+        console.error(`Error fetching product ${params.id}:`, error);
         return NextResponse.json(
-            { success: false, error: "Internal Server Error" },
+            { success: false, error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
             { status: 500 }
         );
     }
@@ -66,7 +75,40 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         }
 
         const { id } = await params;
+
+        // Get product first to retrieve imageId
+        const productToDelete = await getProductById(id);
+        if (!productToDelete) {
+            return NextResponse.json(
+                { success: false, error: "Product not found" },
+                { status: 404 }
+            );
+        }
+
+        console.log(`Deleting product ${id} with imageId: ${productToDelete.imageId}`);
+
+        // Delete the product
         const product = await deleteProduct(id);
+
+        // Delete associated image if exists
+        if (productToDelete.imageId && productToDelete.imageId !== "-") {
+            console.log(`Calling DELETE /api/v1/upload/${productToDelete.imageId}`);
+            try {
+                const deleteResponse = await fetch(`${request.nextUrl.origin}/api/v1/upload/${productToDelete.imageId}`, {
+                    method: "DELETE",
+                    headers: {
+                        cookie: request.headers.get("cookie") || "",
+                    },
+                });
+                const deleteResult = await deleteResponse.json();
+                console.log(`Image deletion result:`, deleteResult);
+            } catch (imageError) {
+                console.error("Failed to delete product image:", imageError);
+                // Continue even if image deletion fails
+            }
+        } else {
+            console.log(`No image to delete (imageId: ${productToDelete.imageId})`);
+        }
 
         return NextResponse.json({
             success: true,

@@ -1,6 +1,15 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useCartStore } from "@/store/useCartStore";
+import { toast } from "react-toastify";
+
+interface Code {
+  id: number;
+  isUsed: boolean;
+}
 
 interface Product {
   id: number;
@@ -9,6 +18,7 @@ interface Product {
   discountprice: number;
   issale: boolean;
   image: string | null;
+  code?: Code[];
 }
 
 interface ProductCardProps {
@@ -16,23 +26,60 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { data: session } = useSession();
+  const { addItem } = useCartStore();
   const [quantity, setQuantity] = useState(1);
 
+  const availableStock = product.code ? product.code.filter((c) => !c.isUsed).length : 0;
+
   const handleIncrease = () => {
-    setQuantity(prev => prev + 1);
+    if (quantity < availableStock) {
+      setQuantity(prev => prev + 1);
+    }
   };
 
   const handleDecrease = () => {
     setQuantity(prev => Math.max(1, prev - 1));
   };
 
-  const handleAddToCart = () => {
-    // TODO: Implement add to cart functionality
-    console.log(`Adding ${quantity} of ${product.name} to cart`);
+  const handleAddToCart = async () => {
+    // Add to local cart store
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      discountprice: product.discountprice,
+      issale: product.issale,
+      image: product.image,
+      quantity,
+      availableStock,
+    });
+
+    // Sync with server if logged in
+    if (session?.user?.id) {
+      try {
+        await fetch("/api/v1/cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: session.user.id,
+            productId: product.id,
+            quantity,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to sync cart with server:", error);
+      }
+    }
+
+    toast.success(`เพิ่ม ${product.name} ลงตะกร้าแล้ว!`);
+
+    // Reset quantity
+    setQuantity(1);
   };
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 relative">
+    <div className="bg-white rounded-[20px] overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 relative">
       {/* Sale Badge */}
       {product.issale && (
         <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full z-10">
@@ -40,23 +87,27 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
       )}
 
-      {/* Product Image */}
-      <div className="relative w-full h-64 bg-gray-100">
-        <Image
-          src={product.image || "/uploads/no_image_available.svg"}
-          alt={product.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 20vw"
-        />
-      </div>
+      {/* Product Image - Clickable */}
+      <Link href={`/products/${product.id}`}>
+        <div className="relative w-full h-64 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
+          <Image
+            src={product.image || "/uploads/no_image_available.svg"}
+            alt={product.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 20vw"
+          />
+        </div>
+      </Link>
 
       {/* Product Info */}
       <div className="p-4">
-        {/* Product Name */}
-        <h3 className="text-base font-medium text-gray-800 mb-2 truncate">
-          {product.name}
-        </h3>
+        {/* Product Name - Clickable */}
+        <Link href={`/products/${product.id}`}>
+          <h3 className="text-base font-medium text-gray-800 mb-2 truncate hover:text-blue-600 transition-colors cursor-pointer">
+            {product.name}
+          </h3>
+        </Link>
 
         {/* Price */}
         <div className="flex items-center gap-2 mb-3">
@@ -78,7 +129,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Stock Status */}
         <div className="text-sm text-green-600 mb-3">
-          49 - In Stock.
+          {product.code ? product.code.filter((c) => !c.isUsed).length : 0} - In Stock.
         </div>
 
         {/* Quantity Selector & Add to Cart */}

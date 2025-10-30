@@ -46,7 +46,7 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
     useEffect(() => {
         // Refresh products when listProducts changes
         const fetchProducts = async () => {
-            // Fetch all products without pagination
+            // Fetch all products
             const response = await fetch("/api/v1/products?limit=1000");
             const data = await response.json();
             if (data.success) {
@@ -64,31 +64,21 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
 
     const handleDelete = async (id: string) => {
         try {
-            const response = await fetch(`/api/v1/products/${id}`);
-            if (!response.ok) throw new Error("Failed to fetch product");
+            const response = await fetch(`/api/v1/products/${id}`, {
+                method: "DELETE"
+            });
 
-            const { imageId } = await response.json();
-            const imageID = imageId || "-";
+            if (!response.ok) throw new Error("Failed to delete product");
 
-            const deleteProduct = fetch(`/api/v1/products/${id}`, { method: "DELETE" });
-
-            const deleteImage = imageID !== "-"
-                ? fetch(`/api/v1/upload/${imageID}`, { method: "DELETE" })
-                : Promise.resolve();
-
-            const [imageResponse, productResponse] = await Promise.all([deleteImage, deleteProduct]);
-
-            if (imageResponse && !imageResponse.ok) throw new Error("Failed to delete image");
-            if (!productResponse.ok) throw new Error("Failed to delete product");
-
-            console.log("Deleted product:", await productResponse.json());
+            const result = await response.json();
+            console.log("Deleted product:", result);
         } catch (error) {
             console.error("Error deleting:", error);
         }
     };
 
     useEffect(() => {
-        if (!isClient || !tableRef.current || products.length === 0) return;
+        if (!isClient || !tableRef.current) return;
 
         // Dynamic import DataTables only on client side
         const initDataTable = async () => {
@@ -133,11 +123,14 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
                     columns: [
                         {
                             title: 'No.',
-                            data: null,
-                            render: (_data, _type, _row, meta) => {
-                                return meta.row + meta.settings._iDisplayStart + 1;
+                            data: 'id',
+                            render: (_data, type, _row, meta) => {
+                                if (type === 'display') {
+                                    return meta.row + meta.settings._iDisplayStart + 1;
+                                }
+                                return _data; // Return id for sorting
                             },
-                            orderable: false,
+                            orderable: true,
                             searchable: false,
                             width: '50px'
                         },

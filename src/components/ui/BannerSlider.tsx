@@ -73,6 +73,7 @@ export default function BannerSlider() {
           src="/uploads/no_image_available.svg"
           alt="No banners available"
           fill
+          sizes="100vw"
           className="object-cover"
           priority
         />

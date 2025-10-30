@@ -34,6 +34,19 @@
 - Development guidelines
 - Code style & best practices
 
+### 🐛 [Issues & Testing](./issues/) ⭐ ใหม่!
+**รายงานปัญหาและการทดสอบล่าสุด**
+
+- [ISSUES_COMPLETE.md](./issues/ISSUES_COMPLETE.md) - 🔴 รายการ Issues ทั้งหมด 40 รายการ
+- [TESTING.md](./issues/TESTING.md) - รายงานการทดสอบระบบ
+- [API.md](./issues/API.md) - เอกสาร API Reference
+
+### 📦 [Archive](./archive/)
+**เอกสารเก่าที่เก็บถาวร**
+
+- เอกสารการแก้ไขในอดีต
+- Migration และ Refactor logs
+
 ---
 
 ## ⚡ Quick Links

@@ -8,6 +8,14 @@ export async function GET() {
             where: {
                 isrecommend: true
             },
+            include: {
+                code: {
+                    select: {
+                        id: true,
+                        isUsed: true
+                    }
+                }
+            },
             orderBy: [
                 { createdAt: 'desc' }
             ],

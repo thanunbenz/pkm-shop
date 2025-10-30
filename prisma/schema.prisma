@@ -41,6 +41,8 @@ model User {
   role         UserStatus     @default(USER)
   Account      Account[]
   RefreshToken RefreshToken[]
+  Purchase     Purchase[]
+  Cart         Cart[]
 }
 
 model Account {
@@ -56,25 +58,10 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-  user              User    @relation(fields: [userId], references: [id])
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           Int      @id @default(autoincrement())
-  sessionToken String   @unique
-  userId       Int
-  expires      DateTime
-}
-
-model VerificationToken {
-  id         Int      @id @default(autoincrement())
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  @@index([userId])
 }
 
 model Product {
@@ -91,6 +78,12 @@ model Product {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   code          Code[]
+  Purchase      Purchase[]
+  Cart          Cart[]
+
+  @@index([issale])
+  @@index([isrecommend])
+  @@index([category])
 }
 
 model File {
@@ -102,30 +95,47 @@ model File {
 }
 
 model Code {
-  id        Int      @id @default(autoincrement())
-  code      String
-  isUsed    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id])
+  id           Int            @id @default(autoincrement())
+  code         String         @unique
+  isUsed       Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  productId    Int
+  product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  PurchaseCode PurchaseCode[]
+
+  @@index([productId])
+  @@index([isUsed])
 }
 
 model Purchase {
   id            Int            @id @default(autoincrement())
   userId        Int
   productId     Int
+  quantity      Int            @default(1)
   totalAmount   Float
   status        OrderStatus    @default(PENDING)
   createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Product        @relation(fields: [productId], references: [id])
   purchaseCodes PurchaseCode[]
   payment       Payment?
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
 }
 
 model PurchaseCode {
   id         Int      @id @default(autoincrement())
   purchaseId Int
   codeId     Int
-  purchase   Purchase @relation(fields: [purchaseId], references: [id])
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  code       Code     @relation(fields: [codeId], references: [id])
+
+  @@unique([purchaseId, codeId])
+  @@index([purchaseId])
+  @@index([codeId])
 }
 
 model Payment {
@@ -133,8 +143,12 @@ model Payment {
   purchaseId    Int           @unique
   paymentMethod String
   paymentStatus PaymentStatus @default(PENDING)
+  transactionId String?
   createdAt     DateTime      @default(now())
-  purchase      Purchase      @relation(fields: [purchaseId], references: [id])
+  updatedAt     DateTime      @updatedAt
+  purchase      Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([paymentStatus])
 }
 
 model RefreshToken {
@@ -147,6 +161,7 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
 }
 
 model Banner {
@@ -165,10 +180,25 @@ model Banner {
 }
 
 model SiteSettings {
-  id                Int      @id @default(autoincrement())
-  welcomeTitle      String   @default("Welcome to PKM Shop")
-  welcomeSubtitle   String?  @db.Text
-  showWelcome       Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  welcomeTitle    String   @default("Welcome to PKM Shop")
+  welcomeSubtitle String?  @db.Text
+  showWelcome     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }

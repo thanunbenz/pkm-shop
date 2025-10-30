@@ -114,7 +114,7 @@ export const productQuerySchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? parseInt(val) : 10))
-    .refine((val) => val > 0 && val <= 100, "จำนวนต้องอยู่ระหว่าง 1-100"),
+    .refine((val) => val > 0 && val <= 1000, "จำนวนต้องอยู่ระหว่าง 1-1000"),
 
   category: z.string().optional(),
 
