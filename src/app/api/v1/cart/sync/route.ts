@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
 interface CartItem {
   productId: number;
@@ -9,6 +11,7 @@ interface CartItem {
 // POST - Sync local cart to server when user logs in
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await request.json();
     const { userId, items } = body as { userId: number; items: CartItem[] };
 
@@ -16,6 +19,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Invalid request body" },
         { status: 400 }
+      );
+    }
+
+    // Authorization check: Must be logged in and userId must match session
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required to sync cart" },
+        { status: 401 }
+      );
+    }
+
+    if (session.user.id !== userId.toString()) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only sync your own cart" },
+        { status: 403 }
       );
     }
 

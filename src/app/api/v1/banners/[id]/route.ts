@@ -3,6 +3,8 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { bannerUpdateSchema } from "@/lib/validations/banner";
+import { ZodError } from "zod";
 
 // GET - ดึงข้อมูล banner ตาม ID
 export async function GET(
@@ -49,23 +51,41 @@ export async function PUT(
 
         const { id } = await params;
         const body = await request.json();
-        const { title, description, image, imageId, link, isActive, order } = body;
+
+        // Validate input with Zod
+        const validatedData = bannerUpdateSchema.parse(body);
+
+        // Only update fields that are provided
+        const updateData: any = {};
+        if (validatedData.title !== undefined) updateData.title = validatedData.title;
+        if (validatedData.description !== undefined) updateData.description = validatedData.description;
+        if (validatedData.image !== undefined) updateData.image = validatedData.image;
+        if (validatedData.imageId !== undefined) updateData.imageId = validatedData.imageId;
+        if (validatedData.link !== undefined) updateData.link = validatedData.link;
+        if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive;
+        if (validatedData.order !== undefined) updateData.order = validatedData.order;
 
         const banner = await prisma.banner.update({
             where: { id },
-            data: {
-                title,
-                description,
-                image,
-                imageId,
-                link,
-                isActive,
-                order,
-            }
+            data: updateData
         });
 
         return NextResponse.json({ success: true, data: banner });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "ข้อมูลไม่ถูกต้อง",
+                    details: error.errors.map(e => ({
+                        field: e.path.join('.'),
+                        message: e.message
+                    }))
+                },
+                { status: 400 }
+            );
+        }
+
         console.error("Error updating banner:", error);
         return NextResponse.json(
             { success: false, error: "Failed to update banner" },

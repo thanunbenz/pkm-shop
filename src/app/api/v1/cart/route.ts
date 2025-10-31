@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await request.json();
     const { userId, productId, quantity = 1 } = body;
 
@@ -25,6 +28,16 @@ export async function POST(request: NextRequest) {
         { error: "Invalid ID or quantity format" },
         { status: 400 }
       );
+    }
+
+    // Authorization check: Verify userId matches session
+    if (session && session.user && session.user.id) {
+      if (session.user.id !== userIdNum.toString()) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only modify your own cart" },
+          { status: 403 }
+        );
+      }
     }
 
     if (quantityNum <= 0) {
@@ -109,6 +122,7 @@ export async function POST(request: NextRequest) {
 // PUT - Update cart item quantity
 export async function PUT(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await request.json();
     const { userId, productId, quantity } = body;
 
@@ -130,6 +144,16 @@ export async function PUT(request: NextRequest) {
         { error: "Invalid ID or quantity format" },
         { status: 400 }
       );
+    }
+
+    // Authorization check: Verify userId matches session
+    if (session && session.user && session.user.id) {
+      if (session.user.id !== userIdNum.toString()) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only modify your own cart" },
+          { status: 403 }
+        );
+      }
     }
 
     // Handle deletion
@@ -202,6 +226,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - Remove item from cart
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const body = await request.json();
     const { userId, productId } = body;
 
@@ -222,6 +247,16 @@ export async function DELETE(request: NextRequest) {
         { error: "Invalid ID format" },
         { status: 400 }
       );
+    }
+
+    // Authorization check: Verify userId matches session
+    if (session && session.user && session.user.id) {
+      if (session.user.id !== userIdNum.toString()) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only modify your own cart" },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.cart.delete({

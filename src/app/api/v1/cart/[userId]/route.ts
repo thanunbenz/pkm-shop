@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 
 // GET - Get cart for a specific user
 export async function GET(
@@ -7,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
     const { userId } = await params;
     const userIdNum = parseInt(userId);
 
@@ -15,6 +18,16 @@ export async function GET(
         { error: "Invalid user ID" },
         { status: 400 }
       );
+    }
+
+    // Authorization check: User can only view their own cart
+    if (session && session.user && session.user.id) {
+      if (session.user.id !== userIdNum.toString()) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only view your own cart" },
+          { status: 403 }
+        );
+      }
     }
 
     const cartItems = await prisma.cart.findMany({
@@ -61,6 +74,7 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
     const { userId } = await params;
     const userIdNum = parseInt(userId);
 
@@ -69,6 +83,16 @@ export async function DELETE(
         { error: "Invalid user ID" },
         { status: 400 }
       );
+    }
+
+    // Authorization check: User can only clear their own cart
+    if (session && session.user && session.user.id) {
+      if (session.user.id !== userIdNum.toString()) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only clear your own cart" },
+          { status: 403 }
+        );
+      }
     }
 
     await prisma.cart.deleteMany({
