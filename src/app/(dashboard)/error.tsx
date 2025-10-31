@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import * as Sentry from '@sentry/nextjs'
 
 export default function DashboardError({
   error,
@@ -13,8 +14,17 @@ export default function DashboardError({
   reset: () => void
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service
+    // Log to console in development
     console.error('Dashboard error:', error)
+
+    // Report to Sentry in production
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      Sentry.captureException(error, {
+        tags: {
+          errorBoundary: 'dashboard',
+        },
+      })
+    }
   }, [error])
 
   return (
