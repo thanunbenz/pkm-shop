@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           return {
-            id: String(user.id),
+            id: user.id,
             email: user.email,
             name: `${user.fname} ${user.lname}`,
             fname: user.fname,
@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
       // Create refresh token when user signs in
       if (user?.id) {
         try {
-          await createRefreshToken(Number(user.id));
+          await createRefreshToken(user.id as number);
           return true;
         } catch (error) {
           console.error("Error creating refresh token:", error);
@@ -90,7 +90,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id as number;
         session.user.email = token.email as string;
         session.user.fname = token.fname as string;
         session.user.lname = token.lname as string;

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.id !== userId.toString()) {
+    if (session.user.id !== userId) {
       return NextResponse.json(
         { error: "Unauthorized: You can only sync your own cart" },
         { status: 403 }
@@ -39,32 +39,46 @@ export async function POST(request: NextRequest) {
 
     // Use transaction to prevent race conditions and ensure data consistency
     await prisma.$transaction(async (tx) => {
+      // Batch fetch all products and existing cart items to avoid N+1 queries
+      const productIds = items.map(item => item.productId);
+
+      const [products, existingCartItems] = await Promise.all([
+        tx.product.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: {
+                code: {
+                  where: { isUsed: false }
+                }
+              }
+            }
+          }
+        }),
+        tx.cart.findMany({
+          where: {
+            userId,
+            productId: { in: productIds }
+          }
+        })
+      ]);
+
+      // Create maps for O(1) lookup
+      const productMap = new Map(products.map(p => [p.id, p]));
+      const cartMap = new Map(existingCartItems.map(c => [c.productId, c]));
+
+      // Validate all items first
       for (const item of items) {
-        // Validate stock availability
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          include: {
-            code: {
-              where: { isUsed: false },
-            },
-          },
-        });
+        const product = productMap.get(item.productId);
 
         if (!product) {
           throw new Error(`ไม่พบสินค้า ID ${item.productId}`);
         }
 
-        const availableStock = product.code.length;
-
-        // Check existing cart item
-        const existingCartItem = await tx.cart.findUnique({
-          where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
-          },
-        });
+        const availableStock = product._count.code;
+        const existingCartItem = cartMap.get(item.productId);
 
         const newQuantity = existingCartItem
           ? existingCartItem.quantity + item.quantity
@@ -76,25 +90,34 @@ export async function POST(request: NextRequest) {
             `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
           );
         }
+      }
 
-        // Upsert cart item (atomic operation)
-        await tx.cart.upsert({
-          where: {
-            userId_productId: {
+      // Batch upsert all cart items
+      await Promise.all(
+        items.map(item => {
+          const existingCartItem = cartMap.get(item.productId);
+          const newQuantity = existingCartItem
+            ? existingCartItem.quantity + item.quantity
+            : item.quantity;
+
+          return tx.cart.upsert({
+            where: {
+              userId_productId: {
+                userId,
+                productId: item.productId,
+              },
+            },
+            create: {
               userId,
               productId: item.productId,
+              quantity: item.quantity,
             },
-          },
-          create: {
-            userId,
-            productId: item.productId,
-            quantity: item.quantity,
-          },
-          update: {
-            quantity: newQuantity,
-          },
-        });
-      }
+            update: {
+              quantity: newQuantity,
+            },
+          });
+        })
+      );
     });
 
     return NextResponse.json({

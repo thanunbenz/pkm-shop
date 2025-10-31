@@ -22,7 +22,7 @@ interface Code {
 }
 
 interface Product {
-    id: string;
+    id: number;
     name: string;
     description: string;
     price: number;
@@ -41,7 +41,7 @@ export default function Page() {
     const [isOpen, setIsOpen] = useState(false);
     const [product, setProduct] = useState<Product>(
         {
-            id: '',
+            id: 0,
             name: '',
             description: '',
             price: 1,

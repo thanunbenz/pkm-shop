@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { updateProductSchema } from "@/lib/validations/product";
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -49,9 +50,23 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         }
 
         const { id } = await params;
-        const ProductJson = await request.json() as Prisma.ProductUpdateInput;
+        const body = await request.json();
 
-        const product = await updateProduct(id, ProductJson);
+        // Validate input with Zod schema
+        const validationResult = updateProductSchema.safeParse(body);
+
+        if (!validationResult.success) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Validation failed",
+                    details: validationResult.error.errors
+                },
+                { status: 400 }
+            );
+        }
+
+        const product = await updateProduct(id, validationResult.data as Prisma.ProductUpdateInput);
         return NextResponse.json({ success: true, data: product });
     } catch (error) {
         console.error("Error updating product:", error);

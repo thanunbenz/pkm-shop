@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
+      if (session.user.id !== userIdNum) {
         return NextResponse.json(
           { error: "Unauthorized: You can only modify your own cart" },
           { status: 403 }
@@ -148,7 +148,7 @@ export async function PUT(request: NextRequest) {
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
+      if (session.user.id !== userIdNum) {
         return NextResponse.json(
           { error: "Unauthorized: You can only modify your own cart" },
           { status: 403 }
@@ -251,7 +251,7 @@ export async function DELETE(request: NextRequest) {
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
+      if (session.user.id !== userIdNum) {
         return NextResponse.json(
           { error: "Unauthorized: You can only modify your own cart" },
           { status: 403 }

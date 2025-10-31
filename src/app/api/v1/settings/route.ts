@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { siteSettingsUpdateSchema } from "@/lib/validations/site-settings";
 
 // GET - ดึง site settings (Public)
 export async function GET() {
@@ -43,7 +44,22 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { welcomeTitle, welcomeSubtitle, showWelcome } = body;
+
+        // Validate input with Zod schema
+        const validationResult = siteSettingsUpdateSchema.safeParse(body);
+
+        if (!validationResult.success) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Validation failed",
+                    details: validationResult.error.errors
+                },
+                { status: 400 }
+            );
+        }
+
+        const { welcomeTitle, welcomeSubtitle, showWelcome } = validationResult.data;
 
         // ดึง settings ปัจจุบัน
         let settings = await prisma.siteSettings.findFirst();
