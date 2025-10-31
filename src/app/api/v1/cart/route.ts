@@ -5,8 +5,9 @@ import prisma from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, productId, quantity } = body;
+    const { userId, productId, quantity = 1 } = body;
 
+    // Validate required fields
     if (!userId || !productId) {
       return NextResponse.json(
         { error: "userId and productId are required" },
@@ -14,35 +15,88 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingCartItem = await prisma.cart.findUnique({
-      where: {
-        userId_productId: {
-          userId: parseInt(userId),
-          productId: parseInt(productId),
+    // Validate and parse integers
+    const userIdNum = parseInt(userId);
+    const productIdNum = parseInt(productId);
+    const quantityNum = parseInt(quantity);
+
+    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
+      return NextResponse.json(
+        { error: "Invalid ID or quantity format" },
+        { status: 400 }
+      );
+    }
+
+    if (quantityNum <= 0) {
+      return NextResponse.json(
+        { error: "Quantity must be greater than 0" },
+        { status: 400 }
+      );
+    }
+
+    // Check stock availability
+    const product = await prisma.product.findUnique({
+      where: { id: productIdNum },
+      include: {
+        code: {
+          where: { isUsed: false },
         },
       },
     });
 
-    if (existingCartItem) {
-      // Update quantity
-      const updated = await prisma.cart.update({
-        where: { id: existingCartItem.id },
-        data: {
-          quantity: existingCartItem.quantity + (quantity || 1),
-        },
-      });
-      return NextResponse.json({ success: true, data: updated });
-    } else {
-      // Create new cart item
-      const created = await prisma.cart.create({
-        data: {
-          userId: parseInt(userId),
-          productId: parseInt(productId),
-          quantity: quantity || 1,
-        },
-      });
-      return NextResponse.json({ success: true, data: created });
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
     }
+
+    const availableStock = product.code.length;
+
+    const existingCartItem = await prisma.cart.findUnique({
+      where: {
+        userId_productId: {
+          userId: userIdNum,
+          productId: productIdNum,
+        },
+      },
+    });
+
+    const newTotalQuantity = existingCartItem
+      ? existingCartItem.quantity + quantityNum
+      : quantityNum;
+
+    // Validate stock
+    if (newTotalQuantity > availableStock) {
+      return NextResponse.json(
+        {
+          error: "สต็อกไม่เพียงพอ",
+          availableStock,
+          requestedQuantity: newTotalQuantity,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Use upsert for atomic operation
+    const cartItem = await prisma.cart.upsert({
+      where: {
+        userId_productId: {
+          userId: userIdNum,
+          productId: productIdNum,
+        },
+      },
+      create: {
+        userId: userIdNum,
+        productId: productIdNum,
+        quantity: quantityNum,
+      },
+      update: {
+        quantity: newTotalQuantity,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: cartItem });
   } catch (error) {
     console.error("Error adding to cart:", error);
     return NextResponse.json(
@@ -58,6 +112,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { userId, productId, quantity } = body;
 
+    // Validate required fields
     if (!userId || !productId || quantity === undefined) {
       return NextResponse.json(
         { error: "userId, productId, and quantity are required" },
@@ -65,13 +120,25 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    if (quantity <= 0) {
-      // Delete if quantity is 0 or less
+    // Validate and parse integers
+    const userIdNum = parseInt(userId);
+    const productIdNum = parseInt(productId);
+    const quantityNum = parseInt(quantity);
+
+    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
+      return NextResponse.json(
+        { error: "Invalid ID or quantity format" },
+        { status: 400 }
+      );
+    }
+
+    // Handle deletion
+    if (quantityNum <= 0) {
       await prisma.cart.delete({
         where: {
           userId_productId: {
-            userId: parseInt(userId),
-            productId: parseInt(productId),
+            userId: userIdNum,
+            productId: productIdNum,
           },
         },
       });
@@ -81,14 +148,45 @@ export async function PUT(request: NextRequest) {
       });
     }
 
+    // Validate stock
+    const product = await prisma.product.findUnique({
+      where: { id: productIdNum },
+      include: {
+        code: {
+          where: { isUsed: false },
+        },
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const availableStock = product.code.length;
+
+    if (quantityNum > availableStock) {
+      return NextResponse.json(
+        {
+          error: "สต็อกไม่เพียงพอ",
+          availableStock,
+          requestedQuantity: quantityNum,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update quantity
     const updated = await prisma.cart.update({
       where: {
         userId_productId: {
-          userId: parseInt(userId),
-          productId: parseInt(productId),
+          userId: userIdNum,
+          productId: productIdNum,
         },
       },
-      data: { quantity: parseInt(quantity) },
+      data: { quantity: quantityNum },
     });
 
     return NextResponse.json({ success: true, data: updated });
@@ -107,6 +205,7 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json();
     const { userId, productId } = body;
 
+    // Validate required fields
     if (!userId || !productId) {
       return NextResponse.json(
         { error: "userId and productId are required" },
@@ -114,11 +213,22 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Validate and parse integers
+    const userIdNum = parseInt(userId);
+    const productIdNum = parseInt(productId);
+
+    if (isNaN(userIdNum) || isNaN(productIdNum)) {
+      return NextResponse.json(
+        { error: "Invalid ID format" },
+        { status: 400 }
+      );
+    }
+
     await prisma.cart.delete({
       where: {
         userId_productId: {
-          userId: parseInt(userId),
-          productId: parseInt(productId),
+          userId: userIdNum,
+          productId: productIdNum,
         },
       },
     });
