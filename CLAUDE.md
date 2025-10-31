@@ -10,6 +10,7 @@
 
 ### Documentation Practice
 * **ทุกครั้งที่ implement อะไรเสร็จให้สร้างเอกสารและจัดเก็บให้เรียบร้อย**
+* **จัดเรียงเอกสารให้เข้าที่และจัดหมวด**
 * Document all major implementations with README files
 * Include usage examples and API documentation
 * Maintain a CHANGELOG.md for tracking changes
