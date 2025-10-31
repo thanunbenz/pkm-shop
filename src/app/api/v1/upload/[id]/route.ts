@@ -5,6 +5,9 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../../auth/[...nextauth]/authOptions'
+import { hasStaffAccess, getUnauthorizedError } from '@/lib/utils/auth-helpers'
 
 // MIME type signatures for validation
 const MIME_SIGNATURES: { [key: string]: number[][] } = {
@@ -126,6 +129,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     try {
+        // Authentication check - Allow OPERATOR and ADMIN
+        const session = await getServerSession(authOptions)
+
+        if (!hasStaffAccess(session)) {
+            return NextResponse.json(
+                { success: false, ...getUnauthorizedError("OPERATOR or ADMIN") },
+                { status: 401 }
+            )
+        }
+
         // Convert string id to number for Prisma
         const fileId = parseInt(id);
         if (isNaN(fileId)) {
@@ -144,15 +157,28 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             );
         }
 
-        const allowedExtensions = [".pdf", ".jpg", ".png", ".webp"];
+        const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
         const file = fileField as File;
         const fileExtension = path.extname(file.name).toLowerCase();
+
+        // Validate extension
         if (!allowedExtensions.includes(fileExtension)) {
             return NextResponse.json(
-                { error: "Only PDF, JPG, PNG, and WebP files are allowed" },
+                { error: "Only PDF, JPG, JPEG, PNG, and WebP files are allowed" },
                 { status: 400 }
             );
         }
+
+        // Validate MIME type
+        if (!allowedMimeTypes.includes(file.type)) {
+            return NextResponse.json(
+                { error: "Invalid file MIME type" },
+                { status: 400 }
+            );
+        }
+
+        // Validate file size
         if (file.size <= 0) {
             return NextResponse.json(
                 { error: "Invalid file size" },
@@ -204,8 +230,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             await fs.mkdir(uploadDir, { recursive: true });
         }
 
-        // Use the buffer we already read for validation
+        // Path traversal protection
+        const uploadDirStats = await fs.realpath(uploadDir);
         const newFilePath = path.join(uploadDir, uniqueFilename);
+        const resolvedPath = path.resolve(newFilePath);
+
+        if (!resolvedPath.startsWith(uploadDirStats)) {
+            return NextResponse.json(
+                { error: 'Invalid file path' },
+                { status: 400 }
+            );
+        }
+
+        // Use the buffer we already read for validation
         await fs.writeFile(newFilePath, buffer);
 
         // Update file record in database
