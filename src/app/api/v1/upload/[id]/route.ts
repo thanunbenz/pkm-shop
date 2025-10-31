@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../auth/[...nextauth]/authOptions'
+import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { hasStaffAccess, getUnauthorizedError } from '@/lib/utils/auth-helpers'
 
 // MIME type signatures for validation

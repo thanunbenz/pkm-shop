@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.errors.map(e => ({
+                    details: error.issues.map((e: any) => ({
                         field: e.path.join('.'),
                         message: e.message
                     }))

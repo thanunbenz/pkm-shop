@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await limiter.check(limit, ip);
+      await limiter.check(limit as number, ip);
     } catch {
       return new NextResponse(
         JSON.stringify({

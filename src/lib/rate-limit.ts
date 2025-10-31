@@ -13,7 +13,7 @@ export const apiRateLimit = async (request: Request) => {
              'unknown';
 
   try {
-    await limiter.check(30, ip); // 30 requests per minute
+    await limiter.check(30 as number, ip); // 30 requests per minute
     return null;
   } catch {
     return new Response(
@@ -33,7 +33,7 @@ export const authRateLimit = async (request: Request) => {
              'unknown';
 
   try {
-    await limiter.check(5, ip); // 5 requests per minute
+    await limiter.check(5 as number, ip); // 5 requests per minute
     return null;
   } catch {
     return new Response(
@@ -53,7 +53,7 @@ export const uploadRateLimit = async (request: Request) => {
              'unknown';
 
   try {
-    await limiter.check(10, ip); // 10 requests per minute
+    await limiter.check(10 as number, ip); // 10 requests per minute
     return null;
   } catch {
     return new Response(
