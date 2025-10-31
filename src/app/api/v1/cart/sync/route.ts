@@ -19,36 +19,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Merge local cart with server cart
-    for (const item of items) {
-      const existingCartItem = await prisma.cart.findUnique({
-        where: {
-          userId_productId: {
-            userId,
-            productId: item.productId,
-          },
-        },
-      });
-
-      if (existingCartItem) {
-        // Update quantity (add local quantity to server quantity)
-        await prisma.cart.update({
-          where: { id: existingCartItem.id },
-          data: {
-            quantity: existingCartItem.quantity + item.quantity,
+    // Use transaction to prevent race conditions and ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        // Validate stock availability
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          include: {
+            code: {
+              where: { isUsed: false },
+            },
           },
         });
-      } else {
-        // Create new cart item
-        await prisma.cart.create({
-          data: {
+
+        if (!product) {
+          throw new Error(`ไม่พบสินค้า ID ${item.productId}`);
+        }
+
+        const availableStock = product.code.length;
+
+        // Check existing cart item
+        const existingCartItem = await tx.cart.findUnique({
+          where: {
+            userId_productId: {
+              userId,
+              productId: item.productId,
+            },
+          },
+        });
+
+        const newQuantity = existingCartItem
+          ? existingCartItem.quantity + item.quantity
+          : item.quantity;
+
+        // Validate stock before adding/updating
+        if (newQuantity > availableStock) {
+          throw new Error(
+            `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
+          );
+        }
+
+        // Upsert cart item (atomic operation)
+        await tx.cart.upsert({
+          where: {
+            userId_productId: {
+              userId,
+              productId: item.productId,
+            },
+          },
+          create: {
             userId,
             productId: item.productId,
             quantity: item.quantity,
           },
+          update: {
+            quantity: newQuantity,
+          },
         });
       }
-    }
+    });
 
     return NextResponse.json({
       success: true,
@@ -56,9 +85,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error syncing cart:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Failed to sync cart";
+
     return NextResponse.json(
-      { error: "Failed to sync cart" },
-      { status: 500 }
+      {
+        success: false,
+        error: errorMessage
+      },
+      { status: 400 }
     );
   }
 }
