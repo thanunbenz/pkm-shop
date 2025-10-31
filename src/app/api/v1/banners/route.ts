@@ -3,6 +3,8 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { bannerCreateSchema } from "@/lib/validations/banner";
+import { ZodError } from "zod";
 
 // GET - ดึงรายการ banners (Public: แค่ active, Admin: ทั้งหมด)
 export async function GET(request: NextRequest) {
@@ -66,30 +68,38 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { title, description, image, imageId, link, isActive, order } = body;
 
-        // Validation
-        if (!title || !image) {
-            return NextResponse.json(
-                { success: false, error: "Title and image are required" },
-                { status: 400 }
-            );
-        }
+        // Validate input with Zod
+        const validatedData = bannerCreateSchema.parse(body);
 
         const banner = await prisma.banner.create({
             data: {
-                title,
-                description: description || null,
-                image,
-                imageId: imageId || null,
-                link: link || null,
-                isActive: isActive !== undefined ? isActive : true,
-                order: order || 0,
+                title: validatedData.title,
+                description: validatedData.description || null,
+                image: validatedData.image,
+                imageId: validatedData.imageId || null,
+                link: validatedData.link || null,
+                isActive: validatedData.isActive,
+                order: validatedData.order,
             }
         });
 
         return NextResponse.json({ success: true, data: banner }, { status: 201 });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "ข้อมูลไม่ถูกต้อง",
+                    details: error.errors.map(e => ({
+                        field: e.path.join('.'),
+                        message: e.message
+                    }))
+                },
+                { status: 400 }
+            );
+        }
+
         console.error("Error creating banner:", error);
         return NextResponse.json(
             { success: false, error: "Failed to create banner" },
