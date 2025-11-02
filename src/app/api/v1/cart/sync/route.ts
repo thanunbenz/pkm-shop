@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import logger from "@/lib/logger";
 
 interface CartItem {
   productId: number;
@@ -10,10 +11,13 @@ interface CartItem {
 
 // POST - Sync local cart to server when user logs in
 export async function POST(request: NextRequest) {
+  let userId: number | undefined;
+
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { userId, items } = body as { userId: number; items: CartItem[] };
+    const { userId: userIdFromBody, items } = body as { userId: number; items: CartItem[] };
+    userId = userIdFromBody;
 
     if (!userId || !Array.isArray(items)) {
       return NextResponse.json(
@@ -125,8 +129,14 @@ export async function POST(request: NextRequest) {
       message: "Cart synced successfully",
     });
   } catch (error) {
-    console.error("Error syncing cart:", error);
+    // Log error details server-side
+    logger.error("Error syncing cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: userId,
+    });
 
+    // Return generic error to client (don't expose internal details)
     const errorMessage = error instanceof Error ? error.message : "Failed to sync cart";
 
     return NextResponse.json(

@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { bannerUpdateSchema } from "@/lib/validations/banner";
 import { ZodError } from "zod";
+import logger from "@/lib/logger";
 
 // GET - ดึงข้อมูล banner ตาม ID
 export async function GET(
@@ -26,7 +27,11 @@ export async function GET(
 
         return NextResponse.json({ success: true, data: banner });
     } catch (error) {
-        console.error("Error fetching banner:", error);
+        logger.error("Error fetching banner:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            bannerId: params.id,
+        });
         return NextResponse.json(
             { success: false, error: "Failed to fetch banner" },
             { status: 500 }
@@ -86,7 +91,11 @@ export async function PUT(
             );
         }
 
-        console.error("Error updating banner:", error);
+        logger.error("Error updating banner:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            bannerId: params.id,
+        });
         return NextResponse.json(
             { success: false, error: "Failed to update banner" },
             { status: 500 }
@@ -123,7 +132,7 @@ export async function DELETE(
             );
         }
 
-        console.log(`Deleting banner ${id} with imageId: ${bannerToDelete.imageId}`);
+        logger.info(`Deleting banner ${id} with imageId: ${bannerToDelete.imageId}`);
 
         // Delete the banner
         const banner = await prisma.banner.delete({
@@ -132,7 +141,7 @@ export async function DELETE(
 
         // Delete associated image if exists
         if (bannerToDelete.imageId && bannerToDelete.imageId !== "-") {
-            console.log(`Calling DELETE /api/v1/upload/${bannerToDelete.imageId}`);
+            logger.info(`Calling DELETE /api/v1/upload/${bannerToDelete.imageId}`);
             try {
                 const deleteResponse = await fetch(`${request.nextUrl.origin}/api/v1/upload/${bannerToDelete.imageId}`, {
                     method: "DELETE",
@@ -141,13 +150,17 @@ export async function DELETE(
                     },
                 });
                 const deleteResult = await deleteResponse.json();
-                console.log(`Image deletion result:`, deleteResult);
+                logger.info(`Image deletion result:`, deleteResult);
             } catch (imageError) {
-                console.error("Failed to delete banner image:", imageError);
+                logger.error("Failed to delete banner image:", {
+                    error: imageError instanceof Error ? imageError.message : "Unknown error",
+                    bannerId: id,
+                    imageId: bannerToDelete.imageId,
+                });
                 // Continue even if image deletion fails
             }
         } else {
-            console.log(`No image to delete (imageId: ${bannerToDelete.imageId})`);
+            logger.info(`No image to delete (imageId: ${bannerToDelete.imageId})`);
         }
 
         return NextResponse.json({
@@ -156,7 +169,11 @@ export async function DELETE(
             imageId: banner.imageId
         });
     } catch (error) {
-        console.error("Error deleting banner:", error);
+        logger.error("Error deleting banner:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            bannerId: params.id,
+        });
         return NextResponse.json(
             { success: false, error: "Failed to delete banner" },
             { status: 500 }

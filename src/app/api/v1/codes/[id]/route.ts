@@ -5,6 +5,8 @@ import { authOptions } from "../../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { codeUpdateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
+import logger from "@/lib/logger";
+import { parseIntSafe } from "@/lib/utils/parse";
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -20,14 +22,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
         const { id } = await params;
 
-        // Validate parseInt
-        const codeId = parseInt(id);
-        if (isNaN(codeId)) {
-            return NextResponse.json(
-                { success: false, error: "Invalid code ID format" },
-                { status: 400 }
-            );
-        }
+        // Validate and parse ID safely
+        const codeId = parseIntSafe(id, "Code ID");
 
         // Delete code
         const deletedCode = await prisma.code.delete({
@@ -39,10 +35,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             data: deletedCode,
         });
     } catch (error) {
-        console.error("Error deleting code:", error);
+        logger.error("Error deleting code:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            codeId: params.id,
+        });
         return NextResponse.json(
-            { success: false, error: "Failed to delete code" },
-            { status: 500 }
+            { success: false, error: error instanceof Error ? error.message : "Failed to delete code" },
+            { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
         );
     }
 }
@@ -62,14 +62,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const { id } = await params;
         const body = await request.json();
 
-        // Validate parseInt
-        const codeId = parseInt(id);
-        if (isNaN(codeId)) {
-            return NextResponse.json(
-                { success: false, error: "Invalid code ID format" },
-                { status: 400 }
-            );
-        }
+        // Validate and parse ID safely
+        const codeId = parseIntSafe(id, "Code ID");
 
         // Validate input with Zod (whitelist fields)
         const validatedData = codeUpdateSchema.parse(body);
@@ -105,10 +99,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        console.error("Error updating code:", error);
+        logger.error("Error updating code:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined,
+            codeId: params.id,
+        });
         return NextResponse.json(
-            { success: false, error: "Failed to update code" },
-            { status: 500 }
+            { success: false, error: error instanceof Error ? error.message : "Failed to update code" },
+            { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
         );
     }
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import logger from "@/lib/logger";
+import { parseIntSafe, parsePositiveIntSafe } from "@/lib/utils/parse";
 
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
@@ -18,17 +20,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
-    const quantityNum = parseInt(quantity);
-
-    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
-      return NextResponse.json(
-        { error: "Invalid ID or quantity format" },
-        { status: 400 }
-      );
-    }
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
+    const quantityNum = parsePositiveIntSafe(quantity, "Quantity");
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
@@ -40,12 +35,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (quantityNum <= 0) {
-      return NextResponse.json(
-        { error: "Quantity must be greater than 0" },
-        { status: 400 }
-      );
-    }
 
     // Check stock availability
     const product = await prisma.product.findUnique({
@@ -111,10 +100,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: cartItem });
   } catch (error) {
-    console.error("Error adding to cart:", error);
+    logger.error("Error adding to cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to add to cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to add to cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }
@@ -134,17 +127,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
-    const quantityNum = parseInt(quantity);
-
-    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
-      return NextResponse.json(
-        { error: "Invalid ID or quantity format" },
-        { status: 400 }
-      );
-    }
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
+    const quantityNum = parseIntSafe(quantity, "Quantity");
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
@@ -215,10 +201,14 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    console.error("Error updating cart:", error);
+    logger.error("Error updating cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to update cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to update cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }
@@ -238,16 +228,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
-
-    if (isNaN(userIdNum) || isNaN(productIdNum)) {
-      return NextResponse.json(
-        { error: "Invalid ID format" },
-        { status: 400 }
-      );
-    }
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
 
     // Authorization check: Verify userId matches session
     if (session && session.user && session.user.id) {
@@ -273,10 +256,14 @@ export async function DELETE(request: NextRequest) {
       message: "Item removed from cart",
     });
   } catch (error) {
-    console.error("Error removing from cart:", error);
+    logger.error("Error removing from cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to remove from cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to remove from cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }
