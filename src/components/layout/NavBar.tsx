@@ -179,6 +179,13 @@ const Navbar = () => {
                         </Link>
                       )}
                       <Link
+                        href="/orders"
+                        className="block px-4 py-2 hover:bg-gray-100 transition-colors border-t border-gray-200"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        คำสั่งซื้อของฉัน
+                      </Link>
+                      <Link
                         href="/profile"
                         className="block px-4 py-2 hover:bg-gray-100 transition-colors border-t border-gray-200"
                         onClick={() => setDropdownOpen(false)}
