@@ -42,7 +42,24 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await limiter.check(limit as number, ip);
+      const headers = limiter.checkNext(request, limit);
+
+      const remaining = headers.get('X-RateLimit-Remaining');
+      if (remaining && parseInt(remaining) < 0) {
+        return new NextResponse(
+          JSON.stringify({
+            success: false,
+            error: 'Rate limit exceeded. Please try again later.',
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': '60',
+            },
+          }
+        );
+      }
     } catch {
       return new NextResponse(
         JSON.stringify({

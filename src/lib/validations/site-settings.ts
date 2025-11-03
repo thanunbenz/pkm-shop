@@ -17,9 +17,7 @@ export const siteSettingsUpdateSchema = z.object({
     .optional(),
 
   showWelcome: z
-    .boolean({
-      invalid_type_error: "showWelcome ต้องเป็น boolean",
-    })
+    .boolean({ message: "showWelcome ต้องเป็น boolean" })
     .optional(),
 });
 

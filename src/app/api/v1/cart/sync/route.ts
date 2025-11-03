@@ -34,12 +34,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.id !== userId) {
+    // Convert session.user.id (string) to number for comparison
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized: You can only sync your own cart" },
         { status: 403 }
       );
     }
+
+    // Ensure userId is not undefined before proceeding
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const userIdNum = userId; // TypeScript now knows this is not undefined
 
     // Use transaction to prevent race conditions and ensure data consistency
     await prisma.$transaction(async (tx) => {
@@ -63,7 +75,7 @@ export async function POST(request: NextRequest) {
         }),
         tx.cart.findMany({
           where: {
-            userId,
+            userId: userIdNum,
             productId: { in: productIds }
           }
         })
@@ -107,12 +119,12 @@ export async function POST(request: NextRequest) {
           return tx.cart.upsert({
             where: {
               userId_productId: {
-                userId,
+                userId: userIdNum,
                 productId: item.productId,
               },
             },
             create: {
-              userId,
+              userId: userIdNum,
               productId: item.productId,
               quantity: item.quantity,
             },

@@ -22,7 +22,8 @@ export async function GET(
 
     // Authorization check: User can only view their own cart
     if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum) {
+      const sessionUserId = parseInt(session.user.id);
+      if (sessionUserId !== userIdNum) {
         return NextResponse.json(
           { error: "Unauthorized: You can only view your own cart" },
           { status: 403 }
@@ -94,7 +95,8 @@ export async function DELETE(
 
     // Authorization check: User can only clear their own cart
     if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum) {
+      const sessionUserId = parseInt(session.user.id);
+      if (sessionUserId !== userIdNum) {
         return NextResponse.json(
           { error: "Unauthorized: You can only clear your own cart" },
           { status: 403 }

@@ -15,7 +15,8 @@ export default function CartPage() {
   useEffect(() => {
     // Load cart from server if logged in
     if (session?.user?.id) {
-      loadFromServer(session.user.id);
+      // Convert string ID to number for API
+      loadFromServer(parseInt(session.user.id));
     }
   }, [session, loadFromServer]);
 

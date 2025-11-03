@@ -1,4 +1,5 @@
 import rateLimit from 'next-rate-limit';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Create rate limiter instance
 const limiter = rateLimit({
@@ -7,61 +8,68 @@ const limiter = rateLimit({
 });
 
 // General API rate limit: 30 requests per minute
-export const apiRateLimit = async (request: Request) => {
-  const ip = request.headers.get('x-forwarded-for') ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
-
+export const apiRateLimit = (request: NextRequest): NextResponse | null => {
   try {
-    await limiter.check(30 as number, ip); // 30 requests per minute
+    const headers = limiter.checkNext(request, 30);
+
+    // If rate limit exceeded, checkNext throws or returns headers with X-RateLimit-Remaining: 0
+    const remaining = headers.get('X-RateLimit-Remaining');
+    if (remaining && parseInt(remaining) < 0) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers }
+      );
+    }
+
     return null;
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
-      {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
 
 // Strict rate limit for auth endpoints: 5 requests per minute
-export const authRateLimit = async (request: Request) => {
-  const ip = request.headers.get('x-forwarded-for') ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
-
+export const authRateLimit = (request: NextRequest): NextResponse | null => {
   try {
-    await limiter.check(5 as number, ip); // 5 requests per minute
+    const headers = limiter.checkNext(request, 5);
+
+    const remaining = headers.get('X-RateLimit-Remaining');
+    if (remaining && parseInt(remaining) < 0) {
+      return NextResponse.json(
+        { error: 'Too many authentication attempts. Please try again later.' },
+        { status: 429, headers }
+      );
+    }
+
     return null;
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Too many authentication attempts. Please try again later.' }),
-      {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return NextResponse.json(
+      { error: 'Too many authentication attempts. Please try again later.' },
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
 
 // Upload rate limit: 10 requests per minute
-export const uploadRateLimit = async (request: Request) => {
-  const ip = request.headers.get('x-forwarded-for') ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
-
+export const uploadRateLimit = (request: NextRequest): NextResponse | null => {
   try {
-    await limiter.check(10 as number, ip); // 10 requests per minute
+    const headers = limiter.checkNext(request, 10);
+
+    const remaining = headers.get('X-RateLimit-Remaining');
+    if (remaining && parseInt(remaining) < 0) {
+      return NextResponse.json(
+        { error: 'Upload rate limit exceeded. Please try again later.' },
+        { status: 429, headers }
+      );
+    }
+
     return null;
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Upload rate limit exceeded. Please try again later.' }),
-      {
-        status: 429,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    return NextResponse.json(
+      { error: 'Upload rate limit exceeded. Please try again later.' },
+      { status: 429, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };

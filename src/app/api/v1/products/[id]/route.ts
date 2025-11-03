@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 {
                     success: false,
                     error: "Validation failed",
-                    details: validationResult.error.errors
+                    details: validationResult.error.issues
                 },
                 { status: 400 }
             );
