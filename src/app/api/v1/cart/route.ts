@@ -9,6 +9,15 @@ import { parseIntSafe, parsePositiveIntSafe } from "@/lib/utils/parse";
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to add items to cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId, quantity = 1 } = body;
 
@@ -25,15 +34,13 @@ export async function POST(request: NextRequest) {
     const productIdNum = parseIntSafe(productId, "Product ID");
     const quantityNum = parsePositiveIntSafe(quantity, "Quantity");
 
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      const sessionUserId = parseInt(session.user.id);
-      if (sessionUserId !== userIdNum) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
-        );
-      }
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
+      );
     }
 
 
@@ -117,6 +124,15 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to update cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId, quantity } = body;
 
@@ -133,15 +149,13 @@ export async function PUT(request: NextRequest) {
     const productIdNum = parseIntSafe(productId, "Product ID");
     const quantityNum = parseIntSafe(quantity, "Quantity");
 
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      const sessionUserId = parseInt(session.user.id);
-      if (sessionUserId !== userIdNum) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
-        );
-      }
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
+      );
     }
 
     // Handle deletion
@@ -219,6 +233,15 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to remove items from cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId } = body;
 
@@ -234,15 +257,13 @@ export async function DELETE(request: NextRequest) {
     const userIdNum = parseIntSafe(userId, "User ID");
     const productIdNum = parseIntSafe(productId, "Product ID");
 
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      const sessionUserId = parseInt(session.user.id);
-      if (sessionUserId !== userIdNum) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
-        );
-      }
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
+      );
     }
 
     await prisma.cart.delete({
