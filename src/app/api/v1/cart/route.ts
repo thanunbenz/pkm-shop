@@ -43,67 +43,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-
-    // Check stock availability
-    const product = await prisma.product.findUnique({
-      where: { id: productIdNum },
-      include: {
-        code: {
-          where: { isUsed: false },
+    // ✅ Use transaction to prevent race conditions
+    const cartItem = await prisma.$transaction(async (tx) => {
+      // 1. Get product with available stock (within transaction)
+      const product = await tx.product.findUnique({
+        where: { id: productIdNum },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              code: {
+                where: { isUsed: false },
+              },
+            },
+          },
         },
-      },
-    });
+      });
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      );
-    }
+      if (!product) {
+        throw new Error("Product not found");
+      }
 
-    const availableStock = product.code.length;
+      const availableStock = product._count.code;
 
-    const existingCartItem = await prisma.cart.findUnique({
-      where: {
-        userId_productId: {
+      // 2. Get existing cart item (within transaction)
+      const existingCartItem = await tx.cart.findUnique({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
+        },
+      });
+
+      const newTotalQuantity = existingCartItem
+        ? existingCartItem.quantity + quantityNum
+        : quantityNum;
+
+      // 3. Validate stock before committing
+      if (newTotalQuantity > availableStock) {
+        throw new Error(
+          `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
+        );
+      }
+
+      // 4. Upsert cart item (atomic within transaction)
+      return await tx.cart.upsert({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
+        },
+        create: {
           userId: userIdNum,
           productId: productIdNum,
+          quantity: quantityNum,
         },
-      },
-    });
-
-    const newTotalQuantity = existingCartItem
-      ? existingCartItem.quantity + quantityNum
-      : quantityNum;
-
-    // Validate stock
-    if (newTotalQuantity > availableStock) {
-      return NextResponse.json(
-        {
-          error: "สต็อกไม่เพียงพอ",
-          availableStock,
-          requestedQuantity: newTotalQuantity,
+        update: {
+          quantity: newTotalQuantity,
         },
-        { status: 400 }
-      );
-    }
-
-    // Use upsert for atomic operation
-    const cartItem = await prisma.cart.upsert({
-      where: {
-        userId_productId: {
-          userId: userIdNum,
-          productId: productIdNum,
-        },
-      },
-      create: {
-        userId: userIdNum,
-        productId: productIdNum,
-        quantity: quantityNum,
-      },
-      update: {
-        quantity: newTotalQuantity,
-      },
+      });
     });
 
     return NextResponse.json({ success: true, data: cartItem });
@@ -158,7 +159,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Handle deletion
+    // Handle deletion (no transaction needed for delete)
     if (quantityNum <= 0) {
       await prisma.cart.delete({
         where: {
@@ -174,45 +175,47 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Validate stock
-    const product = await prisma.product.findUnique({
-      where: { id: productIdNum },
-      include: {
-        code: {
-          where: { isUsed: false },
+    // ✅ Use transaction to prevent race conditions
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Get product with available stock (within transaction)
+      const product = await tx.product.findUnique({
+        where: { id: productIdNum },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              code: {
+                where: { isUsed: false },
+              },
+            },
+          },
         },
-      },
-    });
+      });
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      );
-    }
+      if (!product) {
+        throw new Error("Product not found");
+      }
 
-    const availableStock = product.code.length;
+      const availableStock = product._count.code;
 
-    if (quantityNum > availableStock) {
-      return NextResponse.json(
-        {
-          error: "สต็อกไม่เพียงพอ",
-          availableStock,
-          requestedQuantity: quantityNum,
+      // 2. Validate stock before updating
+      if (quantityNum > availableStock) {
+        throw new Error(
+          `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
+        );
+      }
+
+      // 3. Update quantity (atomic within transaction)
+      return await tx.cart.update({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
         },
-        { status: 400 }
-      );
-    }
-
-    // Update quantity
-    const updated = await prisma.cart.update({
-      where: {
-        userId_productId: {
-          userId: userIdNum,
-          productId: productIdNum,
-        },
-      },
-      data: { quantity: quantityNum },
+        data: { quantity: quantityNum },
+      });
     });
 
     return NextResponse.json({ success: true, data: updated });

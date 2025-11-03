@@ -1,4 +1,7 @@
-import { Product } from "@prisma/client";
+import { Product as PrismaProduct } from "@prisma/client";
+
+// Re-export Product type
+export type Product = PrismaProduct;
 
 export type ProductWithoutTimestamps = Omit<Product, "createdAt" | "updatedAt">;
 
