@@ -141,9 +141,12 @@ model PurchaseCode {
 model Payment {
   id            Int           @id @default(autoincrement())
   purchaseId    Int           @unique
-  paymentMethod String
+  paymentMethod String        @default("manual") // manual, promptpay, truewallet, etc.
   paymentStatus PaymentStatus @default(PENDING)
   transactionId String?
+  paymentProof  String?       @db.Text // URL to payment proof image
+  adminNotes    String?       @db.Text // Admin notes for manual verification
+  paidAt        DateTime?     // Timestamp when payment was verified
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   purchase      Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
