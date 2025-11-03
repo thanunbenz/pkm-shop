@@ -7,6 +7,7 @@ import {
   faBagShopping,
   faGear,
   faImage,
+  faShoppingCart,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface Props {
@@ -44,6 +45,11 @@ const Sidebar = ({ isOpen, onClose }: Props) => {
             href="/dashboard"
             name="Dashboard"
             icon={<FontAwesomeIcon icon={faLaptop} />}
+          />
+          <NavItem
+            href="/orders"
+            name="Orders"
+            icon={<FontAwesomeIcon icon={faShoppingCart} />}
           />
           <NavItem
             href="/product"
