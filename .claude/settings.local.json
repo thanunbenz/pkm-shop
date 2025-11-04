@@ -20,7 +20,8 @@
       "Bash(docker exec:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx prisma generate:*)"
     ],
     "deny": [],
     "ask": []

@@ -210,7 +210,7 @@ export async function PATCH(
       const newStatus = 'status' in validatedData ? validatedData.status : undefined;
       if (newStatus === "COMPLETED") {
         await logApprove(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Approved and completed purchase #${purchaseId}`,
@@ -224,7 +224,7 @@ export async function PATCH(
         );
       } else if (newStatus === "CANCELED") {
         await logReject(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Canceled purchase #${purchaseId}`,
@@ -238,7 +238,7 @@ export async function PATCH(
         );
       } else {
         await logUpdate(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Updated purchase #${purchaseId} status`,
@@ -299,7 +299,7 @@ export async function PATCH(
 
           // ✅ Audit log: Codes delivered
           await logDeliver(
-            session.user.id,
+            session.user.id!,
             'Purchase',
             purchaseId.toString(),
             `Delivered ${codes.length} code(s) for purchase #${purchaseId}`,
@@ -415,7 +415,7 @@ export async function PATCH(
       const newPaymentStatus = 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined;
       if (newPaymentStatus === "SUCCESS") {
         await logApprove(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Approved payment for purchase #${purchaseId}`,
@@ -431,7 +431,7 @@ export async function PATCH(
         );
       } else if (newPaymentStatus === "FAILED") {
         await logReject(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Rejected payment for purchase #${purchaseId}`,
@@ -446,7 +446,7 @@ export async function PATCH(
         );
       } else {
         await logUpdate(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Updated payment status for purchase #${purchaseId}`,

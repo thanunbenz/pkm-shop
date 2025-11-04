@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
         // ✅ Audit log: Code created
         await logCreate(
-            session.user.id,
+            session.user.id!,
             'Code',
             newCode.id.toString(),
             `Created code: ${newCode.code} for product ID: ${newCode.productId}`,

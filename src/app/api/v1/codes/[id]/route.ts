@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
         // ✅ Audit log: Code deleted
         await logDelete(
-            session.user.id,
+            session.user.id!,
             'Code',
             deletedCode.id.toString(),
             `Deleted code: ${deletedCode.code} from product ID: ${deletedCode.productId}`,
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         // ✅ Audit log: Code updated
         await logUpdate(
-            session.user.id,
+            session.user.id!,
             'Code',
             updatedCode.id.toString(),
             `Updated code: ${updatedCode.code}`,
