@@ -60,40 +60,122 @@
   - Send confirmation email
   - Add audit logging for password changes
   - Estimated Time: 2-3 hours
-- [ ] Issue #63: Replace Sequential IDs with Non-Sequential Identifiers (Security)
+- [ ] Issue #63: Replace Sequential IDs with Obfuscated IDs (Security)
   - **Problem:** Sequential IDs allow enumeration attacks (guessing valid user/order IDs)
-  - **Solutions (choose one):**
-    1. **CUID2** (Recommended) - Collision-resistant, sortable, URL-safe
-       - 25 characters, shorter than UUID
-       - Maintains chronological order (good for databases)
-       - Example: `clhxyz123abc456def789ghi`
-    2. **Nano ID** - Compact, fast, URL-safe
-       - Customizable length (default 21 chars)
-       - Example: `V1StGXR8_Z5jdHi6B-myT`
-    3. **ULID** - Universally Unique Lexicographically Sortable Identifier
-       - 26 characters, timestamp-based
-       - Example: `01ARZ3NDEKTSV4RRFFQ69G5FAV`
-    4. **UUID v7** - Time-ordered UUIDs (better than UUID v4)
-       - 36 characters with hyphens
-       - Database-friendly indexing
-    5. **Hashids** - Encode/decode sequential IDs (not recommended)
-       - Keeps sequential IDs but obfuscates them
-       - Can be reversed if salt is leaked
-  - **Implementation:**
-    - Replace userId (User.id) with chosen identifier
-    - Replace orderId (Purchase.id) with chosen identifier
-    - Update database schema with String type
-    - Update all API endpoints and queries
-    - Migrate existing data with custom IDs
-    - Update foreign key relationships (Int → String)
-    - Test all authentication and order flows
-    - Update session handling (NextAuth)
-  - **Database Changes:**
-    - User.id: Int → String @id @default(cuid2())
-    - Purchase.id: Int → String @id @default(cuid2())
-    - All foreign keys: userId: Int → userId: String
-  - Estimated Time: 8-10 hours
-  - **Note:** This is a breaking change requiring careful migration and testing
+  - **Solution: Padded/Obfuscated IDs** (Shopee/Lazada/Amazon style)
+
+  ### Approach 1: Padded User ID (แนะนำสำหรับ userId) ⭐
+  ```typescript
+  // แบบ Shopee/Lazada - เพิ่ม offset ทำให้ดูยาวขึ้น
+  function generateUserId(sequentialId: number): string {
+    const base = 10000000000; // 11 หลัก
+    return (base + sequentialId).toString();
+    // Input: 1 → Output: "10000000001"
+    // Input: 2 → Output: "10000000002"
+  }
+  ```
+  **ข้อดี:**
+  - เก็บเป็น String แต่ยังใช้ sequential ID ได้
+  - ดูยาวและ professional
+  - ไม่ต้องเปลี่ยน database INT column
+  - แค่แปลงตอน display และรับ input
+
+  ### Approach 2: Amazon-style Order ID (แนะนำสำหรับ orderId) ⭐
+  ```typescript
+  // แบบ Amazon - มี prefix + timestamp + random
+  function generateOrderId(): string {
+    const prefix = "702";                          // region/type code
+    const timestamp = Date.now().toString().slice(-7); // 7 หลักท้าย
+    const random = Math.floor(Math.random() * 10000)   // 4 หลักสุ่ม
+      .toString().padStart(4, '0');
+    return `${prefix}-${timestamp}-${random}`;
+    // Result: "702-3456789-5432"
+  }
+  ```
+  **ข้อดี:**
+  - ไม่สามารถเดาได้ง่าย (มี random component)
+  - มี timestamp ช่วยในการ sorting
+  - Format ดูเป็นมืออาชีพเหมือน e-commerce ใหญ่ๆ
+  - เก็บเป็น String ใน database
+
+  ### Approach 3: Hashids (ง่ายที่สุด แต่ต้องระวัง)
+  ```typescript
+  // ใช้ library Hashids
+  import Hashids from 'hashids';
+  const hashids = new Hashids('your-secret-salt', 10);
+
+  // Encode
+  const userId = hashids.encode(1); // "jR3kM9xN2p"
+
+  // Decode (ถอดรหัสกลับได้)
+  const originalId = hashids.decode('jR3kM9xN2p'); // [1]
+  ```
+  **ข้อดี:**
+  - เก็บเป็น INT ใน database ได้เหมือนเดิม
+  - แค่ encode/decode ตอนแสดงผล
+  - ไม่ต้อง migrate database
+
+  **ข้อเสีย:**
+  - ถ้า salt หลุด สามารถถอดรหัสได้
+  - ยังคงเป็น sequential แค่ซ่อนไว้
+
+  ### Implementation Plan (แนะนำใช้ Approach 1+2):
+
+  **สำหรับ User ID:**
+  - เก็บ INT ใน database (ไม่เปลี่ยน)
+  - สร้าง utility functions:
+    - `formatUserId(id: number): string` → "10000000001"
+    - `parseUserId(formatted: string): number` → 1
+  - แสดง formatted ID ใน UI และ API responses
+  - Parse กลับเป็น INT เมื่อรับจาก client
+
+  **สำหรับ Order ID (Purchase):**
+  - เปลี่ยน Purchase.id จาก INT → VARCHAR(20)
+  - Generate order ID ตอน create purchase
+  - Format: "702-{timestamp}-{random}"
+  - เก็บ mapping table (optional) สำหรับ lookup
+
+  ### Files to Update:
+  - [ ] Create `src/lib/utils/id-formatter.ts` (utility functions)
+  - [ ] Update `src/app/api/v1/auth/register/route.ts` (format userId)
+  - [ ] Update `src/app/api/v1/users/profile/route.ts` (format userId)
+  - [ ] Update `src/app/api/v1/purchases/route.ts` (generate orderId)
+  - [ ] Update `src/app/api/v1/purchases/[id]/route.ts` (parse orderId)
+  - [ ] Update `prisma/schema.prisma`:
+    ```prisma
+    model Purchase {
+      id: String @id // was: Int @id @default(autoincrement())
+    }
+    ```
+  - [ ] Create migration for Purchase.id type change
+  - [ ] Update all Purchase queries to use String
+  - [ ] Update session handling (format userId in session)
+  - [ ] Update UI components to display formatted IDs
+
+  ### Environment Variables:
+  ```env
+  # ID Generation Configuration
+  USER_ID_BASE=10000000000        # Base number for padded user IDs
+  ORDER_ID_PREFIX=702              # Prefix for order IDs (region/type)
+  HASHIDS_SALT=your-secret-salt    # If using Hashids approach
+  ```
+
+  ### Estimated Time: 6-8 hours
+  - User ID formatting: 2-3 hours
+  - Order ID generation: 2-3 hours
+  - Testing & migration: 2 hours
+
+  ### Migration Strategy:
+  1. Backup database
+  2. Create new formatted IDs for existing orders
+  3. Run migration script to convert Purchase.id
+  4. Update all API endpoints
+  5. Test thoroughly (auth, orders, payments)
+  6. Deploy with zero downtime plan
+
+  **Note:** Approach 1+2 ดีที่สุดเพราะ:
+  - User ID: ใช้ INT database + format display (ไม่ breaking change)
+  - Order ID: ใช้ String database + random (ปลอดภัยกว่า)
 
 **Missing Features (Issue #37-46):**
 - [ ] Issue #37: No product inventory management (stock tracking)
