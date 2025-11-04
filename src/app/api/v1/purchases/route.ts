@@ -11,15 +11,32 @@ import { sendOrderConfirmation } from "@/lib/email";
 import { formatZodIssues } from "@/types/validation";
 import { Prisma } from "@prisma/client";
 import { writeRateLimiter, publicRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
+import {
+  getRequestContext,
+  logAuthEvent,
+  logSecurityEvent,
+  logBusinessEvent,
+  logError,
+  OperationTimer,
+} from "@/lib/utils/api-logger";
 
 // POST - Create purchase from cart (Checkout)
 export async function POST(request: NextRequest) {
+  const timer = new OperationTimer('checkout', {} as any);
+  let context: any;
+
   try {
     // ✅ Rate limiting for checkout (strict to prevent abuse)
     const clientIp = getClientIp(request);
     const rateLimitResult = await writeRateLimiter.check(`purchase:${clientIp}`);
 
     if (!rateLimitResult.success) {
+      const tempContext = getRequestContext(request);
+      logSecurityEvent('rate_limit', tempContext, {
+        endpoint: '/api/v1/purchases',
+        limit: 20,
+      });
+
       return NextResponse.json(
         { success: false, error: "Too many checkout attempts. Please try again later." },
         {
@@ -30,9 +47,15 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getServerSession(authOptions);
+    context = getRequestContext(request, session);
 
     // ✅ Require authentication
     if (!session || !session.user || !session.user.id) {
+      logAuthEvent('unauthorized', context, {
+        endpoint: '/api/v1/purchases',
+        reason: 'No session',
+      });
+
       return NextResponse.json(
         { error: "Authentication required. Please login to checkout." },
         { status: 401 }
@@ -47,11 +70,23 @@ export async function POST(request: NextRequest) {
 
     // ✅ Authorization: User can only create purchase for themselves
     if (sessionUserId !== validatedData.userId) {
+      logAuthEvent('forbidden', context, {
+        endpoint: '/api/v1/purchases',
+        reason: 'User ID mismatch',
+        requestedUserId: validatedData.userId,
+      });
+
       return NextResponse.json(
         { error: "Unauthorized: You can only create purchases for yourself" },
         { status: 403 }
       );
     }
+
+    // ✅ Log checkout attempt
+    logBusinessEvent('checkout_started', context, {
+      itemCount: validatedData.items.length,
+      paymentMethod: validatedData.paymentMethod,
+    });
 
     // ✅ Transaction: Create purchase, payment, assign codes, clear cart
     const result = await prisma.$transaction(async (tx) => {
@@ -139,10 +174,23 @@ export async function POST(request: NextRequest) {
       return purchases;
     });
 
+    // ✅ Log successful checkout
+    const totalAmount = result.reduce((sum, p) => sum + p.totalAmount, 0);
+    const duration = timer.end();
+
+    logBusinessEvent('checkout_completed', context, {
+      purchaseIds: result.map((p) => p.id),
+      itemCount: validatedData.items.length,
+      totalAmount,
+      duration: `${duration}ms`,
+      paymentMethod: validatedData.paymentMethod,
+    });
+
     logger.info("Purchase created successfully", {
       userId: validatedData.userId,
       purchaseIds: result.map((p) => p.id),
       itemCount: validatedData.items.length,
+      totalAmount,
     });
 
     // ✅ Send order confirmation email (async, non-blocking)
@@ -188,6 +236,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof ZodError) {
+      if (context) {
+        logSecurityEvent('invalid_input', context, {
+          endpoint: '/api/v1/purchases',
+          validationErrors: error.issues.map(i => i.message),
+        });
+      }
+
       return NextResponse.json(
         {
           success: false,
@@ -196,6 +251,18 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // ✅ Log checkout failure
+    if (context) {
+      logBusinessEvent('checkout_failed', context, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      logError(context, error, {
+        endpoint: '/api/v1/purchases',
+        operation: 'checkout',
+      });
     }
 
     logger.error("Error creating purchase:", {
