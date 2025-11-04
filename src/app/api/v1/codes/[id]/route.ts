@@ -7,6 +7,8 @@ import { codeUpdateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { parseIntSafe } from "@/lib/utils/parse";
+import { formatZodIssues } from "@/types/validation";
+import { Prisma } from "@prisma/client";
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -69,10 +71,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const validatedData = codeUpdateSchema.parse(body);
 
         // Only update fields that are provided
-        const updateData: any = {};
+        const updateData: Prisma.CodeUpdateInput = {};
         if (validatedData.code !== undefined) updateData.code = validatedData.code;
         if (validatedData.isUsed !== undefined) updateData.isUsed = validatedData.isUsed;
-        if (validatedData.productId !== undefined) updateData.productId = validatedData.productId;
+        if (validatedData.productId !== undefined) {
+            updateData.product = {
+                connect: { id: validatedData.productId }
+            };
+        }
 
         // Update code
         const updatedCode = await prisma.code.update({
@@ -90,10 +96,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.issues.map((e: any) => ({
-                        field: e.path.join('.'),
-                        message: e.message
-                    }))
+                    details: formatZodIssues(error.issues)
                 },
                 { status: 400 }
             );

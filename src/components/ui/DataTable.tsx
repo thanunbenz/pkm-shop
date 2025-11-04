@@ -6,11 +6,14 @@ import { useStore } from "@/store/useStore";
 // Use a default image path
 const NO_IMAGE_PATH = "/uploads/no_image_available.svg";
 
+// DataTable type from datatables.net
+declare const DataTable: any;
+
 interface Code {
     id: number;
     code: string;
     isUsed: boolean;
-    createdAt: Date;
+    createdAt: string | Date;
     productId: number;
 }
 
@@ -35,7 +38,7 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [isClient, setIsClient] = useState(false);
     const tableRef = useRef<HTMLTableElement>(null);
-    const dataTableRef = useRef<any>(null);
+    const dataTableRef = useRef<typeof DataTable | null>(null);
     const { listProducts, retrieveProductCount } = useStore();
 
     // Ensure component runs only on client

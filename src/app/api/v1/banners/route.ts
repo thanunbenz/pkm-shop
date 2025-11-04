@@ -6,6 +6,7 @@ import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { bannerCreateSchema } from "@/lib/validations/banner";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
+import { formatZodIssues } from "@/types/validation";
 
 // GET - ดึงรายการ banners (Public: แค่ active, Admin: ทั้งหมด)
 export async function GET(request: NextRequest) {
@@ -95,10 +96,7 @@ export async function POST(request: NextRequest) {
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.issues.map((e: any) => ({
-                        field: e.path.join('.'),
-                        message: e.message
-                    }))
+                    details: formatZodIssues(error.issues)
                 },
                 { status: 400 }
             );

@@ -6,6 +6,8 @@ import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { bannerUpdateSchema } from "@/lib/validations/banner";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
+import { formatZodIssues } from "@/types/validation";
+import { Prisma } from "@prisma/client";
 
 // GET - ดึงข้อมูล banner ตาม ID
 export async function GET(
@@ -61,7 +63,7 @@ export async function PUT(
         const validatedData = bannerUpdateSchema.parse(body);
 
         // Only update fields that are provided
-        const updateData: any = {};
+        const updateData: Prisma.BannerUpdateInput = {};
         if (validatedData.title !== undefined) updateData.title = validatedData.title;
         if (validatedData.description !== undefined) updateData.description = validatedData.description;
         if (validatedData.image !== undefined) updateData.image = validatedData.image;
@@ -82,10 +84,7 @@ export async function PUT(
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.issues.map((e: any) => ({
-                        field: e.path.join('.'),
-                        message: e.message
-                    }))
+                    details: formatZodIssues(error.issues)
                 },
                 { status: 400 }
             );

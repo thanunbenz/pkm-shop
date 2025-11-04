@@ -8,7 +8,7 @@ interface Code {
     id: number;
     code: string;
     isUsed: boolean;
-    createdAt: Date;
+    createdAt: string | Date;
     productId: number;
 }
 

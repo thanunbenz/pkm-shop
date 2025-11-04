@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcrypt";
 import { authRateLimiter, getClientIp } from "@/lib/rateLimit";
 import logger from "@/lib/logger";
+import { z } from "zod";
 
 // Try to import Zod, fallback to manual validation
-let registerSchema: any = null;
-let validationErrorResponse: any = null;
-let isZodError: any = null;
+let registerSchema: z.ZodSchema | null = null;
+let validationErrorResponse: ((error: z.ZodError) => NextResponse) | null = null;
+let isZodError: ((error: unknown) => error is z.ZodError) | null = null;
 
 try {
     const validations = require("@/lib/validations");
@@ -20,8 +21,16 @@ try {
 }
 
 // Manual validation function (fallback)
-function manualValidation(body: any) {
-    const errors: any = {};
+interface RegisterBody {
+    fname?: string;
+    lname?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+}
+
+function manualValidation(body: RegisterBody) {
+    const errors: Record<string, string[]> = {};
 
     if (!body.fname || body.fname.length < 2) {
         errors.fname = ["ชื่อต้องมีอย่างน้อย 2 ตัวอักษร"];
@@ -68,6 +77,8 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // Validate request body
+        let fname: string, lname: string, email: string, password: string;
+
         if (registerSchema && validationErrorResponse) {
             // Use Zod validation if available
             const validationResult = registerSchema.safeParse(body);
@@ -76,16 +87,24 @@ export async function POST(req: NextRequest) {
                 return validationErrorResponse(validationResult.error);
             }
 
-            var { fname, lname, email, password } = validationResult.data;
+            const data = validationResult.data as {
+                fname: string;
+                lname: string;
+                email: string;
+                password: string;
+            };
+            ({ fname, lname, email, password } = data);
         } else {
             // Use manual validation as fallback
             const validation = manualValidation(body);
 
             if (!validation.success) {
                 // Format error messages for display
-                const errorMessages = Object.entries(validation.errors)
-                    .map(([field, messages]: [string, any]) => `${field}: ${messages.join(", ")}`)
-                    .join("; ");
+                const errorMessages = validation.errors
+                    ? Object.entries(validation.errors)
+                        .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
+                        .join("; ")
+                    : "Validation failed";
 
                 return NextResponse.json(
                     {
@@ -97,7 +116,11 @@ export async function POST(req: NextRequest) {
                 );
             }
 
-            var { fname, lname, email, password } = body;
+            const bodyData = body as RegisterBody;
+            fname = bodyData.fname!;
+            lname = bodyData.lname!;
+            email = bodyData.email!;
+            password = bodyData.password!;
         }
 
         // Check if user already exists
@@ -154,7 +177,7 @@ export async function POST(req: NextRequest) {
             stack: error instanceof Error ? error.stack : undefined
         });
 
-        if (isZodError && isZodError(error)) {
+        if (isZodError && validationErrorResponse && isZodError(error)) {
             return validationErrorResponse(error);
         }
 

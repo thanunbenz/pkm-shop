@@ -2,11 +2,14 @@
 "use client"
 import { useEffect, useRef, useState } from "react";
 
+// DataTable type from datatables.net
+declare const DataTable: any;
+
 interface Code {
     id: number;
     code: string;
     isUsed: boolean;
-    createdAt: Date;
+    createdAt: string | Date;
     productId: number;
 }
 
@@ -20,7 +23,7 @@ export default function CodeDataTable({ productId, refreshTrigger, onEditCode }:
     const [codes, setCodes] = useState<Code[]>([]);
     const [isClient, setIsClient] = useState(false);
     const tableRef = useRef<HTMLTableElement>(null);
-    const dataTableRef = useRef<any>(null);
+    const dataTableRef = useRef<typeof DataTable | null>(null);
 
     // Ensure component runs only on client
     useEffect(() => {

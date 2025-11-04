@@ -6,6 +6,7 @@ import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { codeCreateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
+import { formatZodIssues } from "@/types/validation";
 
 export async function POST(request: NextRequest) {
     try {
@@ -55,10 +56,7 @@ export async function POST(request: NextRequest) {
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.issues.map((e: any) => ({
-                        field: e.path.join('.'),
-                        message: e.message
-                    }))
+                    details: formatZodIssues(error.issues)
                 },
                 { status: 400 }
             );

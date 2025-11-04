@@ -8,6 +8,8 @@ import logger from "@/lib/logger";
 import { parseIntSafe } from "@/lib/utils/parse";
 import { hasStaffAccess } from "@/lib/utils/auth-helpers";
 import { sendOrderConfirmation } from "@/lib/email";
+import { formatZodIssues } from "@/types/validation";
+import { Prisma } from "@prisma/client";
 
 // POST - Create purchase from cart (Checkout)
 export async function POST(request: NextRequest) {
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
             paymentMethod: validatedData.paymentMethod,
             paymentStatus: "PENDING",
             paymentProof: validatedData.paymentProof,
-          } as any,
+          },
         });
 
         // 5. Reserve codes (mark as used and link to purchase)
@@ -175,10 +177,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "ข้อมูลไม่ถูกต้อง",
-          details: error.issues.map((e) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
+          details: formatZodIssues(error.issues),
         },
         { status: 400 }
       );
@@ -220,7 +219,7 @@ export async function GET(request: NextRequest) {
     const sessionUserId = parseInt(session.user.id);
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.PurchaseWhereInput = {};
 
     // Regular users can only see their own purchases
     if (!isStaff) {
@@ -290,10 +289,7 @@ export async function GET(request: NextRequest) {
         {
           success: false,
           error: "Invalid query parameters",
-          details: error.issues.map((e) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
+          details: formatZodIssues(error.issues),
         },
         { status: 400 }
       );

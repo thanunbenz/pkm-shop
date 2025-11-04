@@ -5,11 +5,13 @@ import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { UPLOAD_CONFIG } from "@/config/constants";
 import logger from "@/lib/logger";
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 // Try to import Zod schemas
-let productQuerySchema: any = null;
-let validationErrorResponse: any = null;
-let isZodError: any = null;
+let productQuerySchema: z.ZodSchema | null = null;
+let validationErrorResponse: ((error: z.ZodError) => NextResponse) | null = null;
+let isZodError: ((error: unknown) => error is z.ZodError) | null = null;
 
 try {
     const validations = require("@/lib/validations");
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
         let sortBy = "createdAt";
         let order: "asc" | "desc" = "desc";
 
-        if (productQuerySchema) {
+        if (productQuerySchema && validationErrorResponse) {
             // Use Zod validation if available
             const queryParams = Object.fromEntries(searchParams);
             const validationResult = productQuerySchema.safeParse(queryParams);
@@ -58,7 +60,17 @@ export async function GET(request: NextRequest) {
                 return validationErrorResponse(validationResult.error);
             }
 
-            ({ page, limit, category, issale, isrecommend, search, sortBy, order } = validationResult.data);
+            const data = validationResult.data as {
+                page: number;
+                limit: number;
+                category?: string;
+                issale?: boolean;
+                isrecommend?: boolean;
+                search?: string;
+                sortBy: string;
+                order: "asc" | "desc";
+            };
+            ({ page, limit, category, issale, isrecommend, search, sortBy, order } = data);
         } else {
             // Manual parsing as fallback
             page = parseInt(searchParams.get("page") || "1");
@@ -72,8 +84,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Build where clause
-        const where: any = {};
-        if (category) where.category = category;
+        const where: Prisma.ProductWhereInput = {};
+        if (category) where.category = category as Prisma.ProductWhereInput['category'];
         // Only filter if explicitly true (not false)
         if (issale === true) where.issale = true;
         if (isrecommend === true) where.isrecommend = true;
@@ -123,7 +135,7 @@ export async function GET(request: NextRequest) {
             stack: error instanceof Error ? error.stack : undefined
         });
 
-        if (isZodError && isZodError(error)) {
+        if (isZodError && validationErrorResponse && isZodError(error)) {
             return validationErrorResponse(error);
         }
 

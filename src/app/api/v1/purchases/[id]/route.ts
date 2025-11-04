@@ -8,6 +8,8 @@ import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { parseIntSafe } from "@/lib/utils/parse";
 import { sendCodeDelivery } from "@/lib/email";
+import { formatZodIssues } from "@/types/validation";
+import { Prisma } from "@prisma/client";
 
 // GET - Get purchase details
 export async function GET(
@@ -121,7 +123,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Determine which schema to use based on body content
-    let validatedData: any;
+    let validatedData: ReturnType<typeof purchaseStatusUpdateSchema.parse> | ReturnType<typeof paymentStatusUpdateSchema.parse>;
     let updateType: "purchase" | "payment";
 
     if (body.status !== undefined) {
@@ -150,14 +152,21 @@ export async function PATCH(
       );
     }
 
-    let updatedData: any;
+    let updatedData: Prisma.PurchaseGetPayload<{
+      include: {
+        payment: true;
+        product: { select: { name: true; image: true } };
+        user: { select: { email: true; fname: true; lname: true } };
+        purchaseCodes: { include: { code: { select: { code: true } } } };
+      };
+    }> | Prisma.PaymentGetPayload<true>;
 
     if (updateType === "purchase") {
       // Update purchase status
       updatedData = await prisma.purchase.update({
         where: { id: purchaseId },
         data: {
-          status: validatedData.status,
+          status: 'status' in validatedData ? validatedData.status : undefined,
         },
         include: {
           payment: true,
@@ -187,55 +196,60 @@ export async function PATCH(
       });
 
       // Update payment adminNotes if provided
-      if (validatedData.adminNotes && purchase.payment) {
+      if ('adminNotes' in validatedData && validatedData.adminNotes && purchase.payment) {
         await prisma.payment.update({
           where: { id: purchase.payment.id },
           data: {
             adminNotes: validatedData.adminNotes,
-          } as any,
+          },
         });
       }
 
       logger.info("Purchase status updated", {
         purchaseId,
         oldStatus: purchase.status,
-        newStatus: validatedData.status,
+        newStatus: 'status' in validatedData ? validatedData.status : undefined,
         updatedBy: session?.user?.email,
       });
 
       // ✅ Send code delivery email when status becomes COMPLETED
       if (
+        'status' in validatedData &&
         validatedData.status === "COMPLETED" &&
         purchase.status !== "COMPLETED" &&
-        updatedData.user.email
+        'user' in updatedData && updatedData.user.email
       ) {
         // Extract codes from purchaseCodes
-        const codes = updatedData.purchaseCodes.map((pc: { code: { code: string } }) => pc.code.code);
+        const codes = 'purchaseCodes' in updatedData
+          ? updatedData.purchaseCodes.map((pc) => pc.code.code)
+          : [];
 
         // Send email asynchronously (don't wait for it)
-        sendCodeDelivery({
-          to: updatedData.user.email,
-          orderId: purchaseId,
-          customerName: `${updatedData.user.fname} ${updatedData.user.lname}`.trim() || "ลูกค้า",
-          productName: updatedData.product.name,
-          productImage: updatedData.product.image || "",
-          codes,
-          quantity: updatedData.quantity,
-          totalAmount: updatedData.totalAmount,
-        }).catch((error) => {
-          // Log email error but don't fail the status update
-          logger.error("Failed to send code delivery email", {
+        if ('product' in updatedData && 'quantity' in updatedData && 'totalAmount' in updatedData) {
+          sendCodeDelivery({
+            to: updatedData.user.email,
+            orderId: purchaseId,
+            customerName: `${updatedData.user.fname} ${updatedData.user.lname}`.trim() || "ลูกค้า",
+            productName: updatedData.product.name,
+            productImage: updatedData.product.image || "",
+            codes,
+            quantity: updatedData.quantity,
+            totalAmount: updatedData.totalAmount,
+          }).catch((error) => {
+            // Log email error but don't fail the status update
+            logger.error("Failed to send code delivery email", {
+              purchaseId,
+              email: 'user' in updatedData ? updatedData.user.email : 'unknown',
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          });
+
+          logger.info("Code delivery email queued", {
             purchaseId,
             email: updatedData.user.email,
-            error: error instanceof Error ? error.message : "Unknown error",
+            codesCount: codes.length,
           });
-        });
-
-        logger.info("Code delivery email queued", {
-          purchaseId,
-          email: updatedData.user.email,
-          codesCount: codes.length,
-        });
+        }
       }
     } else {
       // Update payment status
@@ -246,30 +260,30 @@ export async function PATCH(
         );
       }
 
-      const paymentUpdate: any = {
-        paymentStatus: validatedData.paymentStatus,
+      const paymentUpdate: Prisma.PaymentUpdateInput = {
+        paymentStatus: 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined,
       };
 
-      if (validatedData.adminNotes) {
+      if ('adminNotes' in validatedData && validatedData.adminNotes) {
         paymentUpdate.adminNotes = validatedData.adminNotes;
       }
 
-      if (validatedData.transactionId) {
+      if ('transactionId' in validatedData && validatedData.transactionId) {
         paymentUpdate.transactionId = validatedData.transactionId;
       }
 
       // Set paidAt timestamp when payment is successful
-      if (validatedData.paymentStatus === "SUCCESS" && !(purchase.payment as any).paidAt) {
+      if ('paymentStatus' in validatedData && validatedData.paymentStatus === "SUCCESS" && !purchase.payment.paidAt) {
         paymentUpdate.paidAt = new Date();
       }
 
       updatedData = await prisma.payment.update({
         where: { id: purchase.payment.id },
-        data: paymentUpdate as any,
+        data: paymentUpdate,
       });
 
       // Auto-complete purchase if payment is successful
-      if (validatedData.paymentStatus === "SUCCESS" && purchase.status === "PENDING") {
+      if ('paymentStatus' in validatedData && validatedData.paymentStatus === "SUCCESS" && purchase.status === "PENDING") {
         await prisma.purchase.update({
           where: { id: purchaseId },
           data: { status: "COMPLETED" },
@@ -339,7 +353,7 @@ export async function PATCH(
         purchaseId,
         paymentId: purchase.payment.id,
         oldStatus: purchase.payment.paymentStatus,
-        newStatus: validatedData.paymentStatus,
+        newStatus: 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined,
         updatedBy: session?.user?.email,
       });
     }
@@ -355,10 +369,7 @@ export async function PATCH(
         {
           success: false,
           error: "ข้อมูลไม่ถูกต้อง",
-          details: error.issues.map((e) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
+          details: formatZodIssues(error.issues),
         },
         { status: 400 }
       );

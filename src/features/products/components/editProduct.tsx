@@ -17,7 +17,7 @@ interface Code {
     id: number;
     code: string;
     isUsed: boolean;
-    createdAt: string;
+    createdAt: string | Date;
     productId: number;
 }
 
@@ -65,7 +65,7 @@ export default function Page() {
     const [uploading, setUploading] = useState(false)
     const [imageName, setImageName] = useState("");
     const [refreshTrigger, setRefreshTrigger] = useState(0);
-    const [editingCode, setEditingCode] = useState<any>(null);
+    const [editingCode, setEditingCode] = useState<Code | null>(null);
 
     const fetchProduct = async () => {
         try {
@@ -187,7 +187,7 @@ export default function Page() {
         fetchProduct();
     };
 
-    const handleEditCode = (code: any) => {
+    const handleEditCode = (code: Code) => {
         setEditingCode(code);
     };
 

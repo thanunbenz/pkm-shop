@@ -1,11 +1,10 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
 interface Props {
-  href: any;
+  href: string;
   icon: ReactNode;
   name: string;
 }
