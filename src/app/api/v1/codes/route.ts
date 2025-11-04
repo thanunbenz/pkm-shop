@@ -8,6 +8,7 @@ import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { formatZodIssues } from "@/types/validation";
 import { adminRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
+import { logCreate, getClientIp as getAuditClientIp } from "@/lib/utils/audit-logger";
 
 export async function POST(request: NextRequest) {
     try {
@@ -60,6 +61,21 @@ export async function POST(request: NextRequest) {
                 isUsed: validatedData.isUsed,
             },
         });
+
+        // ✅ Audit log: Code created
+        await logCreate(
+            session.user.id,
+            'Code',
+            newCode.id.toString(),
+            `Created code: ${newCode.code} for product ID: ${newCode.productId}`,
+            {
+                code: newCode.code,
+                productId: newCode.productId,
+                isUsed: newCode.isUsed,
+            },
+            getAuditClientIp(request),
+            request.headers.get('user-agent') || undefined
+        );
 
         return NextResponse.json(
             { success: true, data: newCode },

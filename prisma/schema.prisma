@@ -31,6 +31,17 @@ enum OrderStatus {
   CANCELED
 }
 
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  APPROVE
+  REJECT
+  DELIVER
+}
+
 model User {
   id           Int            @id @default(autoincrement())
   fname        String
@@ -43,6 +54,7 @@ model User {
   RefreshToken RefreshToken[]
   Purchase     Purchase[]
   Cart         Cart[]
+  AuditLog     AuditLog[]
 }
 
 model Account {
@@ -204,4 +216,23 @@ model Cart {
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
+}
+
+model AuditLog {
+  id          Int         @id @default(autoincrement())
+  userId      Int         // Admin/Operator who performed the action
+  action      AuditAction // Type of action (CREATE, UPDATE, DELETE, etc.)
+  resource    String      // Resource type (Product, Code, Purchase, Banner, etc.)
+  resourceId  String      // ID of the affected resource
+  description String      @db.Text // Human-readable description
+  metadata    String?     @db.Text // JSON string with additional details
+  ipAddress   String?     // IP address of the admin
+  userAgent   String?     @db.Text // User agent string
+  createdAt   DateTime    @default(now())
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([action])
+  @@index([createdAt])
 }

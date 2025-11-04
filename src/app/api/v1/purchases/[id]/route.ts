@@ -10,6 +10,7 @@ import { parseIntSafe } from "@/lib/utils/parse";
 import { sendCodeDelivery } from "@/lib/email";
 import { formatZodIssues } from "@/types/validation";
 import { Prisma } from "@prisma/client";
+import { logApprove, logReject, logDeliver, logUpdate, getClientIp } from "@/lib/utils/audit-logger";
 
 // GET - Get purchase details
 export async function GET(
@@ -205,10 +206,56 @@ export async function PATCH(
         });
       }
 
+      // ✅ Audit log: Purchase status updated
+      const newStatus = 'status' in validatedData ? validatedData.status : undefined;
+      if (newStatus === "COMPLETED") {
+        await logApprove(
+          session.user.id,
+          'Purchase',
+          purchaseId.toString(),
+          `Approved and completed purchase #${purchaseId}`,
+          {
+            oldStatus: purchase.status,
+            newStatus,
+            adminNotes: 'adminNotes' in validatedData ? validatedData.adminNotes : undefined,
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      } else if (newStatus === "CANCELED") {
+        await logReject(
+          session.user.id,
+          'Purchase',
+          purchaseId.toString(),
+          `Canceled purchase #${purchaseId}`,
+          {
+            oldStatus: purchase.status,
+            newStatus,
+            adminNotes: 'adminNotes' in validatedData ? validatedData.adminNotes : undefined,
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      } else {
+        await logUpdate(
+          session.user.id,
+          'Purchase',
+          purchaseId.toString(),
+          `Updated purchase #${purchaseId} status`,
+          {
+            changes: {
+              status: { old: purchase.status, new: newStatus },
+            },
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      }
+
       logger.info("Purchase status updated", {
         purchaseId,
         oldStatus: purchase.status,
-        newStatus: 'status' in validatedData ? validatedData.status : undefined,
+        newStatus,
         updatedBy: session?.user?.email,
       });
 
@@ -249,6 +296,21 @@ export async function PATCH(
             email: updatedData.user.email,
             codesCount: codes.length,
           });
+
+          // ✅ Audit log: Codes delivered
+          await logDeliver(
+            session.user.id,
+            'Purchase',
+            purchaseId.toString(),
+            `Delivered ${codes.length} code(s) for purchase #${purchaseId}`,
+            {
+              codesCount: codes.length,
+              productName: updatedData.product.name,
+              customerEmail: updatedData.user.email,
+            },
+            getClientIp(request),
+            request.headers.get('user-agent') || undefined
+          );
         }
       }
     } else {
@@ -349,11 +411,61 @@ export async function PATCH(
         }
       }
 
+      // ✅ Audit log: Payment status updated
+      const newPaymentStatus = 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined;
+      if (newPaymentStatus === "SUCCESS") {
+        await logApprove(
+          session.user.id,
+          'Payment',
+          purchase.payment.id.toString(),
+          `Approved payment for purchase #${purchaseId}`,
+          {
+            purchaseId,
+            oldStatus: purchase.payment.paymentStatus,
+            newStatus: newPaymentStatus,
+            transactionId: 'transactionId' in validatedData ? validatedData.transactionId : undefined,
+            adminNotes: 'adminNotes' in validatedData ? validatedData.adminNotes : undefined,
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      } else if (newPaymentStatus === "FAILED") {
+        await logReject(
+          session.user.id,
+          'Payment',
+          purchase.payment.id.toString(),
+          `Rejected payment for purchase #${purchaseId}`,
+          {
+            purchaseId,
+            oldStatus: purchase.payment.paymentStatus,
+            newStatus: newPaymentStatus,
+            adminNotes: 'adminNotes' in validatedData ? validatedData.adminNotes : undefined,
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      } else {
+        await logUpdate(
+          session.user.id,
+          'Payment',
+          purchase.payment.id.toString(),
+          `Updated payment status for purchase #${purchaseId}`,
+          {
+            purchaseId,
+            changes: {
+              paymentStatus: { old: purchase.payment.paymentStatus, new: newPaymentStatus },
+            },
+          },
+          getClientIp(request),
+          request.headers.get('user-agent') || undefined
+        );
+      }
+
       logger.info("Payment status updated", {
         purchaseId,
         paymentId: purchase.payment.id,
         oldStatus: purchase.payment.paymentStatus,
-        newStatus: 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined,
+        newStatus: newPaymentStatus,
         updatedBy: session?.user?.email,
       });
     }
