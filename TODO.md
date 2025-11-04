@@ -8,9 +8,9 @@
 **Issues Summary:**
 - ✅ Critical: 7/7 (100%)
 - ✅ High Priority: 10/10 (100%)
-- ⏳ Medium Priority: 1/25 (4%)
+- ⏳ Medium Priority: 2/26 (8%)
 - ⏳ Low Priority: 0/15 (0%)
-- **Total:** 18/57 issues (32% overall)
+- **Total:** 19/58 issues (33% overall)
 
 ---
 
@@ -37,7 +37,7 @@
 - [x] Issue #16: No admin audit log (Priority 6)
 - [x] Issue #18: Session timeout not configured (Priority 8)
 
-### 📋 Medium Priority Issues (5% - 1/20)
+### 📋 Medium Priority Issues (8% - 2/26)
 
 **Core Functionality (Issue #19-28):**
 - [ ] Issue #19: No product search functionality
@@ -51,6 +51,26 @@
 - [ ] Issue #27: No refund system
 - [ ] Issue #28: Missing backup/restore functionality
 
+**Security Improvements (Issue #62-63):**
+- [ ] Issue #62: Change Password in User Profile
+  - Add "Change Password" section to profile page
+  - Require current password verification
+  - Validate new password strength
+  - Update password hash in database
+  - Send confirmation email
+  - Add audit logging for password changes
+  - Estimated Time: 2-3 hours
+- [ ] Issue #63: Replace Sequential IDs with UUIDs (Security)
+  - Replace userId with UUID to prevent enumeration attacks
+  - Replace orderId (Purchase) with UUID to prevent order guessing
+  - Update database schema (userId, Purchase.id)
+  - Update all API endpoints and queries
+  - Migrate existing data to UUIDs
+  - Update foreign key relationships
+  - Test all authentication and order flows
+  - Estimated Time: 6-8 hours
+  - **Note:** This is a breaking change requiring careful migration
+
 **Missing Features (Issue #37-46):**
 - [ ] Issue #37: No product inventory management (stock tracking)
 - [ ] Issue #38: Missing product variants (different prices/types)
@@ -63,8 +83,8 @@
 - [ ] Issue #45: No customer support chat/ticket system
 - [ ] Issue #46: Missing email templates customization
 
-**Admin Settings & Configuration (NEW):**
-- [ ] Issue #57: Admin Settings Page - Email Configuration
+**Admin Settings & Configuration (Issue #57-61):**
+- [x] Issue #57: Admin Settings Page - Email Configuration ✅ **COMPLETE**
   - Support email (support@pkmshop.com)
   - Email notifications toggle
 - [ ] Issue #58: Admin Settings Page - SEO & Branding
@@ -275,6 +295,25 @@
 - `src/app/api/v1/codes/[id]/route.ts` - Fixed TS errors
 - `src/app/api/v1/codes/route.ts` - Fixed TS errors
 - `src/app/api/v1/purchases/[id]/route.ts` - Fixed TS errors (7 instances)
+
+### 13. Email Configuration in Admin Settings (Issue #57) - MEDIUM PRIORITY
+**Commit:** b81736e
+**Branch:** feature/medium-priority-issues
+- ✅ Extended SiteSettings database model with email fields
+- ✅ Added supportEmail and enableEmailNotifications fields
+- ✅ Created comprehensive Zod validation schema
+- ✅ Updated Settings API (GET/PUT) with partial updates
+- ✅ Built Email Configuration section in admin UI
+- ✅ Added email notifications toggle with warning
+- ✅ Display current email configuration (EMAIL_FROM, Resend API status)
+- ✅ Prepared schema for future SEO & Branding fields (Issue #58)
+
+**Files:**
+- `prisma/schema.prisma` - Extended SiteSettings model (email + SEO fields)
+- `src/lib/validations/site-settings.ts` (97 lines) - Complete validation schema
+- `src/app/api/v1/settings/route.ts` - Updated GET/PUT endpoints
+- `src/app/dashboard/settings/page.tsx` - Email Configuration UI section
+- `.env` - Added EMAIL_SUPPORT variable
 
 ---
 
@@ -492,16 +531,17 @@ dc64aff - feat: Add Email Notification System with Resend
 - Lines of Code: 3500+ lines
 
 ### Branch: feature/medium-priority-issues
-**Ahead of origin:** 1 commit
+**Ahead of origin:** 2 commits
 
 ```
+b81736e - feat: Add Email Configuration to Admin Settings (Issue #57)
 94110a3 - feat: Add User Profile Edit functionality (Issue #24)
 ```
 
 **Total Changes (feature/medium-priority-issues):**
-- Modified: 6 files
-- Created: 2 new files
-- Lines of Code: 600+ lines
+- Modified: 10 files
+- Created: 3 new files
+- Lines of Code: 900+ lines
 
 **⚠️ Note:** Run `npx prisma generate` to regenerate Prisma Client for AuditLog model
 
@@ -599,20 +639,23 @@ dc64aff - feat: Add Email Notification System with Resend
 
 ### 🎯 Phase 2: Core Features (NEXT)
 **Timeline:** 2-3 weeks
-**Status:** ⏳ 4% (1/25 issues)
+**Status:** ⏳ 8% (2/26 issues)
 - ⏳ Product search & filters
 - ⏳ Bulk operations
 - ⏳ Analytics dashboard
 - ✅ User profile management (Issue #24)
-- ⏳ Password reset
+- ⏳ Password change functionality (Issue #62)
+- ⏳ Password reset flow (Issue #25)
 - ⏳ Order cancellation
 - ⏳ Inventory management
 - ⏳ Coupon system
 - ⏳ Payment gateway
-- ⏳ Admin settings (email, SEO, branding)
-- ⏳ Cookie consent banner
-- ⏳ Category management (CRUD)
-- ⏳ Category navigation in navbar
+- ✅ Admin settings - Email (Issue #57)
+- ⏳ Admin settings - SEO & Branding (Issue #58)
+- ⏳ Cookie consent banner (Issue #59)
+- ⏳ Category management CRUD (Issue #60)
+- ⏳ Category navigation in navbar (Issue #61)
+- ⏳ Replace sequential IDs with UUIDs (Issue #63)
 
 ### 📋 Phase 3: Polish & Optimization (FUTURE)
 **Timeline:** 1-2 weeks
@@ -627,9 +670,9 @@ dc64aff - feat: Add Email Notification System with Resend
 - ⏳ Testing suite
 - ⏳ CI/CD pipeline
 
-**Total Roadmap:** 57 issues
-**Completed:** 18 issues (32%)
-**Remaining:** 39 issues (68%)
+**Total Roadmap:** 58 issues
+**Completed:** 19 issues (33%)
+**Remaining:** 39 issues (67%)
 
 ---
 
