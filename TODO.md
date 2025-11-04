@@ -60,16 +60,40 @@
   - Send confirmation email
   - Add audit logging for password changes
   - Estimated Time: 2-3 hours
-- [ ] Issue #63: Replace Sequential IDs with UUIDs (Security)
-  - Replace userId with UUID to prevent enumeration attacks
-  - Replace orderId (Purchase) with UUID to prevent order guessing
-  - Update database schema (userId, Purchase.id)
-  - Update all API endpoints and queries
-  - Migrate existing data to UUIDs
-  - Update foreign key relationships
-  - Test all authentication and order flows
-  - Estimated Time: 6-8 hours
-  - **Note:** This is a breaking change requiring careful migration
+- [ ] Issue #63: Replace Sequential IDs with Non-Sequential Identifiers (Security)
+  - **Problem:** Sequential IDs allow enumeration attacks (guessing valid user/order IDs)
+  - **Solutions (choose one):**
+    1. **CUID2** (Recommended) - Collision-resistant, sortable, URL-safe
+       - 25 characters, shorter than UUID
+       - Maintains chronological order (good for databases)
+       - Example: `clhxyz123abc456def789ghi`
+    2. **Nano ID** - Compact, fast, URL-safe
+       - Customizable length (default 21 chars)
+       - Example: `V1StGXR8_Z5jdHi6B-myT`
+    3. **ULID** - Universally Unique Lexicographically Sortable Identifier
+       - 26 characters, timestamp-based
+       - Example: `01ARZ3NDEKTSV4RRFFQ69G5FAV`
+    4. **UUID v7** - Time-ordered UUIDs (better than UUID v4)
+       - 36 characters with hyphens
+       - Database-friendly indexing
+    5. **Hashids** - Encode/decode sequential IDs (not recommended)
+       - Keeps sequential IDs but obfuscates them
+       - Can be reversed if salt is leaked
+  - **Implementation:**
+    - Replace userId (User.id) with chosen identifier
+    - Replace orderId (Purchase.id) with chosen identifier
+    - Update database schema with String type
+    - Update all API endpoints and queries
+    - Migrate existing data with custom IDs
+    - Update foreign key relationships (Int → String)
+    - Test all authentication and order flows
+    - Update session handling (NextAuth)
+  - **Database Changes:**
+    - User.id: Int → String @id @default(cuid2())
+    - Purchase.id: Int → String @id @default(cuid2())
+    - All foreign keys: userId: Int → userId: String
+  - Estimated Time: 8-10 hours
+  - **Note:** This is a breaking change requiring careful migration and testing
 
 **Missing Features (Issue #37-46):**
 - [ ] Issue #37: No product inventory management (stock tracking)
