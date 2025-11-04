@@ -31,14 +31,10 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['@fortawesome/react-fontawesome', '@fortawesome/free-solid-svg-icons'],
   },
 
-  // Disable ESLint during build (fix lint errors separately)
+  // ESLint errors are linting issues, not blocking - can be fixed separately
+  // TypeScript type safety is now enforced during build
   eslint: {
     ignoreDuringBuilds: true,
-  },
-
-  // Disable TypeScript errors during build (fix type errors separately)
-  typescript: {
-    ignoreBuildErrors: true,
   },
 };
 

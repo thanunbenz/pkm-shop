@@ -19,7 +19,8 @@
       "Bash(docker ps:*)",
       "Bash(docker exec:*)",
       "Bash(git checkout:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

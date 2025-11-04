@@ -150,7 +150,7 @@ export async function PATCH(
       );
     }
 
-    let updatedData;
+    let updatedData: any;
 
     if (updateType === "purchase") {
       // Update purchase status
@@ -210,7 +210,7 @@ export async function PATCH(
         updatedData.user.email
       ) {
         // Extract codes from purchaseCodes
-        const codes = updatedData.purchaseCodes.map((pc) => pc.code.code);
+        const codes = updatedData.purchaseCodes.map((pc: { code: { code: string } }) => pc.code.code);
 
         // Send email asynchronously (don't wait for it)
         sendCodeDelivery({

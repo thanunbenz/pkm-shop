@@ -36,7 +36,7 @@ export const CodeDelivery = ({
   return (
     <Html>
       <Head />
-      <Preview>โค้ดสินค้าของคุณพร้อมแล้ว - คำสั่งซื้อ #{orderId}</Preview>
+      <Preview>โค้ดสินค้าของคุณพร้อมแล้ว - คำสั่งซื้อ #{String(orderId)}</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Header */}
@@ -84,13 +84,13 @@ export const CodeDelivery = ({
                   <Img
                     src={productImage}
                     alt={productName}
-                    style={productImage}
+                    style={productImageStyle}
                     width={80}
                     height={80}
                   />
                 )}
                 <div style={productInfo}>
-                  <Text style={productName}>{productName}</Text>
+                  <Text style={productNameStyle}>{productName}</Text>
                   <Text style={productQuantity}>จำนวน: {quantity} ชิ้น</Text>
                 </div>
               </Section>
@@ -341,11 +341,16 @@ const productSection = {
   padding: "12px 0",
 };
 
+const productImageStyle = {
+  borderRadius: "8px",
+  objectFit: "cover" as const,
+};
+
 const productInfo = {
   flex: 1,
 };
 
-const productName = {
+const productNameStyle = {
   color: "#212529",
   fontSize: "16px",
   fontWeight: "600" as const,
