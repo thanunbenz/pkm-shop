@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import NavItem from "@/components/dashboard/NavItem";
+import DashboardNavItem from "@/components/dashboard/DashboardNavItem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLaptop,
@@ -41,27 +41,27 @@ const Sidebar = ({ isOpen, onClose }: Props) => {
         </div>
 
         <nav className="mt-10">
-          <NavItem
+          <DashboardNavItem
             href="/dashboard"
             name="Dashboard"
             icon={<FontAwesomeIcon icon={faLaptop} />}
           />
-          <NavItem
+          <DashboardNavItem
             href="/dashboard/orders"
             name="Orders"
             icon={<FontAwesomeIcon icon={faShoppingCart} />}
           />
-          <NavItem
+          <DashboardNavItem
             href="/dashboard/product"
             name="Product"
             icon={<FontAwesomeIcon icon={faBagShopping} />}
           />
-          <NavItem
+          <DashboardNavItem
             href="/dashboard/banner"
             name="Banner"
             icon={<FontAwesomeIcon icon={faImage} />}
           />
-          <NavItem
+          <DashboardNavItem
             href="/dashboard/settings"
             name="Settings"
             icon={<FontAwesomeIcon icon={faGear} />}

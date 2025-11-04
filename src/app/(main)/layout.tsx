@@ -2,7 +2,7 @@
 
 import Navbar from "@/components/layout/NavBar";
 import Footer from "@/components/layout/Footer";
-import FloatingScrollUp from "@/components/ui/FloatingScrollUp";
+import FloatingScrollToTopButton from "@/components/ui/FloatingScrollToTopButton";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { ToastContainer, Bounce } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -16,7 +16,7 @@ export default function MainLayout({
     <>
       <Navbar />
       {children}
-      <FloatingScrollUp />
+      <FloatingScrollToTopButton />
       <FloatingCart />
       <Footer />
       <ToastContainer

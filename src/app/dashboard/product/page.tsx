@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { redirect } from "next/navigation";
 import AddProductButton from "@/components/ui/AddProductButton";
-import DataTable from "@/components/ui/DataTable";
+import ProductManagementTable from "@/components/ui/ProductManagementTable";
 
 async function getProducts() {
   try {
@@ -44,7 +44,7 @@ export default async function Page() {
   <AddProductButton />
 </div>
       <hr className="border-gray-300 my-3 border" />
-      <DataTable initialProducts={products} />
+      <ProductManagementTable initialProducts={products} />
     </>
   );
 }

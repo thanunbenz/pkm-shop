@@ -21,7 +21,9 @@
       "Bash(git checkout:*)",
       "Bash(git push:*)",
       "Bash(git add:*)",
-      "Bash(npx prisma generate:*)"
+      "Bash(npx prisma generate:*)",
+      "Bash(find:*)",
+      "Bash(git mv:*)"
     ],
     "deny": [],
     "ask": []

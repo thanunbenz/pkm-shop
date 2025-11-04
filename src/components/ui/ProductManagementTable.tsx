@@ -34,7 +34,7 @@ interface DataTableProps {
     initialProducts: Product[];
 }
 
-export default function DataTableComponent({ initialProducts }: DataTableProps) {
+export default function ProductManagementTable({ initialProducts }: DataTableProps) {
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [isClient, setIsClient] = useState(false);
     const tableRef = useRef<HTMLTableElement>(null);

@@ -9,7 +9,7 @@ interface Props {
   name: string;
 }
 
-export default function NavItem({ href, icon, name }: Props) {
+export default function DashboardNavItem({ href, icon, name }: Props) {
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
 
