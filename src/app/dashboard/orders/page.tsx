@@ -134,7 +134,7 @@ export default function AdminOrdersPage() {
       setUpdating(true);
 
       const response = await fetch(`/api/v1/purchases/${orderId}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });

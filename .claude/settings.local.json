@@ -13,7 +13,12 @@
       "Bash(npx prisma migrate dev:*)",
       "Bash(ls:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

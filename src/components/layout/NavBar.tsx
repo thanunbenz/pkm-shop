@@ -49,7 +49,8 @@ const Navbar = () => {
     if (isMounted && session?.user?.id) {
       cartStore.loadFromServer(Number(session.user.id));
     }
-  }, [isMounted, session, cartStore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMounted, session?.user?.id]); // Only depend on isMounted and user ID
 
   // Handle click outside dropdown
   useEffect(() => {
