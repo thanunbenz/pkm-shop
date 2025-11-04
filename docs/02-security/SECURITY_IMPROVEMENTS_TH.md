@@ -103,27 +103,169 @@
 
 ---
 
-## 3. Rate Limiting (การจำกัดอัตราการใช้งาน)
+## 3. Rate Limiting - การจำกัดอัตราการใช้งาน (Issue #14)
 
-### การตั้งค่า Rate Limiting
-**ไฟล์:** `middleware.ts`
+### ภาพรวม
+ระบบ Rate Limiting ที่ครอบคลุมสำหรับ API endpoints ทั้งหมด พร้อมตัวจำกัดเฉพาะสำหรับแต่ละประเภทของ endpoint
 
-**อัตราที่กำหนด:**
+### ตัวจำกัดอัตราการใช้งานเฉพาะทาง
+**ไฟล์:** `src/lib/rateLimit.ts`
+
+#### ประเภทของ Rate Limiter
+
+**1. authRateLimiter (การยืนยันตัวตน)**
+- **ขั้นจำกัด:** 5 requests ต่อชั่วโมง
+- **ใช้สำหรับ:** Endpoints การยืนยันตัวตน
+- **ป้องกัน:** การโจมตีแบบ Brute Force บน login/auth
+- **หน้าต่างเวลา:** 60 นาที
+
+**2. adminRateLimiter (การจัดการผู้ดูแลระบบ)**
+- **ขั้นจำกัด:** 30 requests ต่อนาที
+- **ใช้สำหรับ:** การจัดการแอดมิน (codes, products, banners)
+- **ป้องกัน:** การใช้งาน Admin API ในทางที่ผิด
+- **หน้าต่างเวลา:** 1 นาที
+
+**3. writeRateLimiter (การเขียนข้อมูล)**
+- **ขั้นจำกัด:** 20 requests ต่อนาที
+- **ใช้สำหรับ:** การเขียนข้อมูล (checkout, purchase)
+- **ป้องกัน:** การสแปมธุรกรรม
+- **หน้าต่างเวลา:** 1 นาที
+
+**4. uploadRateLimiter (การอัปโหลดไฟล์)**
+- **ขั้นจำกัด:** 10 requests ต่อนาที
+- **ใช้สำหรับ:** Endpoints อัปโหลดไฟล์
+- **ป้องกัน:** การสแปมอัปโหลดและ DoS
+- **หน้าต่างเวลา:** 1 นาที
+
+**5. publicRateLimiter (การอ่านข้อมูลสาธารณะ)**
+- **ขั้นจำกัด:** 100 requests ต่อนาที
+- **ใช้สำหรับ:** Endpoints สาธารณะ (banners, purchases list)
+- **ป้องกัน:** DoS พร้อมขีดจำกัดที่กว้างขวาง
+- **หน้าต่างเวลา:** 1 นาที
+
+**6. cartRateLimiter (การจัดการตะกร้า)**
+- **ขั้นจำกัด:** 30 requests ต่อนาที
+- **ใช้สำหรับ:** การจัดการตะกร้า (add, update, delete)
+- **ป้องกัน:** การสแปมตะกร้า
+- **หน้าต่างเวลา:** 1 นาที
+
+**7. apiRateLimiter (API ทั่วไป)**
+- **ขั้นจำกัด:** 60 requests ต่อนาที
+- **ใช้สำหรับ:** API endpoints ทั่วไป
+- **ป้องกัน:** การใช้งาน API ในทางที่ผิด
+- **หน้าต่างเวลา:** 1 นาที
+
+---
+
+### ฟังก์ชันช่วยเหลือ Rate Limiting
+
+#### `getClientIp(request: NextRequest): string`
+ดึง IP address ของ client พร้อมรองรับ proxy
+```typescript
+const clientIp = getClientIp(request);
+// ตรวจสอบ: x-forwarded-for → x-real-ip → request IP
+```
+
+#### `createRateLimitHeaders(limit, remaining, resetTime)`
+สร้าง headers มาตรฐานสำหรับ rate limit
 ```typescript
 {
-  '/api/auth': 5 requests/นาที           // ยืนยันตัวตน
-  '/api/v1/register': 3 requests/นาที    // ลงทะเบียน
-  '/api/v1/upload': 10 requests/นาที     // อัปโหลดไฟล์
-  '/api/v1': 30 requests/นาที            // API ทั่วไป
+  'X-RateLimit-Limit': '30',
+  'X-RateLimit-Remaining': '25',
+  'X-RateLimit-Reset': '2025-01-01T00:01:00.000Z'
 }
 ```
 
-**คุณสมบัติ:**
-- จำกัดตาม IP
-- รองรับ Proxy (x-forwarded-for, x-real-ip)
-- Sliding window 60 วินาที
-- รองรับ 500 unique tokens ต่อช่วงเวลา
-- ส่งสถานะ 429 พร้อม Retry-After header
+---
+
+### Endpoints ที่มี Rate Limiting
+
+#### Cart Endpoints (ตะกร้าสินค้า)
+**ไฟล์:** `src/app/api/v1/cart/route.ts`
+- **POST /cart** - เพิ่มสินค้าในตะกร้า (30 req/min)
+- **PUT /cart** - อัปเดตตะกร้า (30 req/min)
+- **DELETE /cart** - ลบสินค้าออกจากตะกร้า (30 req/min)
+
+#### Purchase Endpoints (การสั่งซื้อ)
+**ไฟล์:** `src/app/api/v1/purchases/route.ts`
+- **POST /purchases** - ชำระเงิน (20 req/min - เข้มงวด)
+- **GET /purchases** - ประวัติการสั่งซื้อ (100 req/min - กว้างขวาง)
+
+#### Code Management (การจัดการโค้ด)
+**ไฟล์:** `src/app/api/v1/codes/route.ts`
+- **POST /codes** - สร้างโค้ด (30 req/min)
+
+#### Product Management (การจัดการสินค้า)
+**ไฟล์:** `src/app/api/v1/products/route.ts`
+- **GET /products** - รายการสินค้า (30 req/min)
+
+#### Banner Management (การจัดการแบนเนอร์)
+**ไฟล์:** `src/app/api/v1/banners/route.ts`
+- **GET /banners** - รายการแบนเนอร์สาธารณะ (100 req/min)
+- **POST /banners** - สร้างแบนเนอร์ (30 req/min)
+
+#### Upload Endpoints (การอัปโหลด)
+**ไฟล์:** `src/app/api/v1/upload/[id]/route.ts`
+- **PUT /upload/[id]** - อัปเดตไฟล์อัปโหลด (10 req/min)
+
+---
+
+### รูปแบบการตอบกลับเมื่อเกิน Rate Limit
+
+**เมื่อเกินขีดจำกัด (429):**
+```json
+{
+  "success": false,
+  "error": "Too many requests. Please try again later."
+}
+```
+
+**Response Headers:**
+```
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 30
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 2025-01-01T00:01:00.000Z
+```
+
+---
+
+### รูปแบบการใช้งานมาตรฐาน
+
+รูปแบบมาตรฐานสำหรับทุก endpoint:
+```typescript
+export async function POST(request: NextRequest) {
+  try {
+    // ✅ Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await cartRateLimiter.check(`cart:${clientIp}`);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+        }
+      );
+    }
+
+    // ... logic ของ endpoint ส่วนอื่นๆ
+  } catch (error) {
+    // ... การจัดการ error
+  }
+}
+```
+
+---
+
+### คุณสมบัติ
+- **จำกัดตาม IP** พร้อมรองรับ proxy (x-forwarded-for, x-real-ip)
+- **อัลกอริทึม Sliding window** สำหรับการจำกัดอัตราที่แม่นยำ
+- **Headers มาตรฐาน** (X-RateLimit-*) สำหรับผู้ใช้ API
+- **เฉพาะทางต่อ endpoint** ตามความต้องการด้านความปลอดภัย
+- **การตอบกลับ error ที่สม่ำเสมอ** ทุก endpoint
+- **จัดเก็บในหน่วยความจำ** (เหมาะสำหรับ deployment แบบ single-instance)
 
 ---
 
