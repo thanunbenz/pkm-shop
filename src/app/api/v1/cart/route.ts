@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to add to cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to add to cart" },
+      { status: 500 }
     );
   }
 }
@@ -226,8 +226,8 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to update cart" },
+      { status: 500 }
     );
   }
 }
@@ -289,8 +289,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to remove from cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to remove from cart" },
+      { status: 500 }
     );
   }
 }

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             stack: error instanceof Error ? error.stack : undefined
         });
         return NextResponse.json(
-            { success: false, error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
+            { success: false, error: "Failed to fetch product" },
             { status: 500 }
         );
     }

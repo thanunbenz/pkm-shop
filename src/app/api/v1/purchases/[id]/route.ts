@@ -93,7 +93,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch purchase",
+        error: "Failed to fetch purchase",
       },
       { status: 500 }
     );
@@ -372,7 +372,7 @@ export async function PATCH(
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Failed to update purchase",
+        error: "Failed to update purchase",
       },
       { status: 500 }
     );

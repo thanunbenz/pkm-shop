@@ -41,8 +41,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             codeId: params.id,
         });
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : "Failed to delete code" },
-            { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+            { success: false, error: "Failed to delete code" },
+            { status: 500 }
         );
     }
 }
@@ -105,8 +105,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             codeId: params.id,
         });
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : "Failed to update code" },
-            { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+            { success: false, error: "Failed to update code" },
+            { status: 500 }
         );
     }
 }
