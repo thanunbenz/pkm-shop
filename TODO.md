@@ -5,6 +5,13 @@
 **Overall Progress:** 95% Production-Ready
 **Security Score:** 99/100
 
+**Issues Summary:**
+- ✅ Critical: 7/7 (100%)
+- ✅ High Priority: 10/10 (100%)
+- ⏳ Medium Priority: 0/20 (0%)
+- ⏳ Low Priority: 0/15 (0%)
+- **Total:** 17/52 issues (33% overall)
+
 ---
 
 ## 📊 Progress Summary
@@ -30,27 +37,57 @@
 - [x] Issue #16: No admin audit log (Priority 6)
 - [x] Issue #18: Session timeout not configured (Priority 8)
 
-### 📋 Medium Priority Issues (0% - 0/10)
+### 📋 Medium Priority Issues (0% - 0/20)
+
+**Core Functionality (Issue #19-28):**
 - [ ] Issue #19: No product search functionality
 - [ ] Issue #20: Missing product categories filter
-- [ ] Issue #21: No bulk code upload
-- [ ] Issue #22: Missing export functionality
-- [ ] Issue #23: No analytics/dashboard
-- [ ] Issue #24: Missing user profile edit
-- [ ] Issue #25: No password reset flow
-- [ ] Issue #26: Missing order cancellation
+- [ ] Issue #21: No bulk code upload for admin
+- [ ] Issue #22: Missing export functionality (orders, audit logs to CSV/Excel)
+- [ ] Issue #23: No analytics/dashboard (sales metrics, popular products)
+- [ ] Issue #24: Missing user profile edit (change name, email)
+- [ ] Issue #25: No password reset flow (forgot password)
+- [ ] Issue #26: Missing order cancellation for users
 - [ ] Issue #27: No refund system
-- [ ] Issue #28: Missing backup/restore
+- [ ] Issue #28: Missing backup/restore functionality
 
-### 📝 Low Priority Issues (0% - 0/8)
+**Missing Features (Issue #37-46):**
+- [ ] Issue #37: No product inventory management (stock tracking)
+- [ ] Issue #38: Missing product variants (different prices/types)
+- [ ] Issue #39: No coupon/discount code system
+- [ ] Issue #40: Missing payment gateway integration (PromptPay QR)
+- [ ] Issue #41: No notification system (in-app notifications)
+- [ ] Issue #42: Missing batch operations (bulk update products/codes)
+- [ ] Issue #43: No role-based UI customization
+- [ ] Issue #44: Missing transaction history
+- [ ] Issue #45: No customer support chat/ticket system
+- [ ] Issue #46: Missing email templates customization
+
+### 📝 Low Priority Issues (0% - 0/15)
+
+**UI/UX Improvements (Issue #29-36):**
 - [ ] Issue #29: No dark mode
-- [ ] Issue #30: Missing mobile responsiveness
-- [ ] Issue #31: No internationalization (i18n)
-- [ ] Issue #32: Missing accessibility features
-- [ ] Issue #33: No performance monitoring
-- [ ] Issue #34: Missing SEO optimization
-- [ ] Issue #35: No API documentation
-- [ ] Issue #36: Missing unit tests
+- [ ] Issue #30: Missing mobile responsiveness improvements
+- [ ] Issue #31: No internationalization (i18n) - Multi-language support
+- [ ] Issue #32: Missing accessibility features (ARIA, keyboard navigation)
+- [ ] Issue #33: No performance monitoring dashboard
+- [ ] Issue #34: Missing SEO optimization (meta tags, sitemap)
+- [ ] Issue #35: No API documentation (Swagger/OpenAPI)
+- [ ] Issue #36: Missing unit tests and E2E tests
+
+**Developer Experience (Issue #47-51):**
+- [ ] Issue #47: No development seed data
+- [ ] Issue #48: Missing Docker setup for development
+- [ ] Issue #49: No CI/CD pipeline configuration
+- [ ] Issue #50: Missing code quality tools (ESLint strict, Prettier)
+- [ ] Issue #51: No Git hooks for pre-commit checks
+
+**Nice-to-Have (Issue #52-56):**
+- [ ] Issue #52: Missing social media integration (share products)
+- [ ] Issue #53: No product reviews/ratings system
+- [ ] Issue #54: Missing wishlist functionality
+- [ ] Issue #55: No recommendation engine
+- [ ] Issue #56: Missing advanced filtering (price range, date range)
 
 ---
 
@@ -202,6 +239,132 @@
 
 All High Priority issues are now complete! Ready for Medium Priority tasks.
 
+### 📦 Core Functionality (Issue #19-28) - RECOMMENDED FIRST
+
+#### Issue #19: Product Search Functionality
+**Estimated Time:** 3-4 hours
+- [ ] Implement full-text search for products (name, description)
+- [ ] Add search API endpoint with pagination
+- [ ] Create search UI component with autocomplete
+- [ ] Add search filters (category, price range)
+- [ ] Optimize search with database indexes
+
+#### Issue #20: Product Categories Filter
+**Estimated Time:** 2-3 hours
+- [ ] Add category filter UI on shop page
+- [ ] Implement category-based filtering API
+- [ ] Add "All Categories" option
+- [ ] Show product count per category
+- [ ] Persist filter state in URL query params
+
+#### Issue #21: Bulk Code Upload for Admin
+**Estimated Time:** 4-5 hours
+- [ ] Create CSV/Excel upload UI for admin
+- [ ] Implement bulk code creation API
+- [ ] Add validation for bulk upload (check duplicates)
+- [ ] Show upload progress and results
+- [ ] Add error handling for invalid data
+- [ ] Create audit log for bulk operations
+
+#### Issue #22: Export Functionality
+**Estimated Time:** 3-4 hours
+- [ ] Add export to CSV for orders
+- [ ] Add export to Excel for audit logs
+- [ ] Add export for products and codes
+- [ ] Implement date range filtering for exports
+- [ ] Add download progress indicator
+- [ ] Include metadata (export date, filters used)
+
+#### Issue #23: Analytics/Dashboard
+**Estimated Time:** 6-8 hours
+- [ ] Create admin analytics dashboard
+- [ ] Show sales metrics (total sales, revenue)
+- [ ] Display popular products chart
+- [ ] Show order status breakdown
+- [ ] Add date range selector (today, week, month, custom)
+- [ ] Implement real-time updates
+- [ ] Add export analytics to PDF/Excel
+
+#### Issue #24: User Profile Edit
+**Estimated Time:** 2-3 hours
+- [ ] Create profile edit page
+- [ ] Add API for updating user profile
+- [ ] Allow name and email changes
+- [ ] Add email verification for email changes
+- [ ] Show update success/error messages
+- [ ] Add audit logging for profile changes
+
+#### Issue #25: Password Reset Flow
+**Estimated Time:** 4-5 hours
+- [ ] Create "Forgot Password" page
+- [ ] Implement password reset token generation
+- [ ] Send password reset email
+- [ ] Create password reset confirmation page
+- [ ] Add token validation and expiration
+- [ ] Update password securely
+- [ ] Send confirmation email after reset
+
+#### Issue #26: Order Cancellation for Users
+**Estimated Time:** 3-4 hours
+- [ ] Add "Cancel Order" button for pending orders
+- [ ] Implement order cancellation API
+- [ ] Release reserved codes back to pool
+- [ ] Send cancellation confirmation email
+- [ ] Add cancellation reason (optional)
+- [ ] Update order status to CANCELED
+- [ ] Add audit logging
+
+#### Issue #27: Refund System
+**Estimated Time:** 6-8 hours
+- [ ] Create refund request system
+- [ ] Add refund approval workflow for admin
+- [ ] Implement refund status tracking
+- [ ] Send refund confirmation emails
+- [ ] Add refund history for users
+- [ ] Track refund amounts and reasons
+- [ ] Generate refund reports
+
+#### Issue #28: Backup/Restore Functionality
+**Estimated Time:** 5-6 hours
+- [ ] Implement database backup scripts
+- [ ] Add automated backup scheduling
+- [ ] Create restore functionality
+- [ ] Store backups securely (encrypted)
+- [ ] Add backup history and management UI
+- [ ] Test backup and restore procedures
+- [ ] Document backup/restore process
+
+### 🚀 Missing Features (Issue #37-46) - RECOMMENDED SECOND
+
+#### Issue #37: Product Inventory Management
+**Estimated Time:** 5-6 hours
+- [ ] Add stock quantity field to products
+- [ ] Implement stock tracking and updates
+- [ ] Show "Out of Stock" status
+- [ ] Add low stock alerts for admin
+- [ ] Track stock history
+- [ ] Prevent overselling
+
+#### Issue #39: Coupon/Discount Code System
+**Estimated Time:** 6-8 hours
+- [ ] Create coupon database schema
+- [ ] Add coupon creation UI for admin
+- [ ] Implement discount code validation
+- [ ] Apply discounts during checkout
+- [ ] Track coupon usage and limits
+- [ ] Add expiration dates
+- [ ] Generate usage reports
+
+#### Issue #40: Payment Gateway Integration (PromptPay QR)
+**Estimated Time:** 8-10 hours
+- [ ] Integrate PromptPay QR code generation
+- [ ] Add automatic payment verification
+- [ ] Implement webhook for payment status
+- [ ] Show QR code during checkout
+- [ ] Add payment timeout handling
+- [ ] Send payment confirmation
+- [ ] Support multiple payment methods
+
 ---
 
 ## 📦 Commits Ready to Push
@@ -251,9 +414,14 @@ dc64aff - feat: Add Email Notification System with Resend
 - [ ] Request code review
 - [ ] Merge to main
 
-### Phase 3: Medium Priority (1 week)
-- [ ] Start with Issue #19-23 (core functionality)
-- [ ] Then Issue #24-28 (user features)
+### Phase 3: Medium Priority (2-3 weeks)
+**Recommended Order:**
+1. **Week 1:** Core Functionality (Issue #19-23) - Search, filters, analytics
+2. **Week 2:** User Features (Issue #24-28) - Profile, password reset, cancellation
+3. **Week 3:** Advanced Features (Issue #37, #39, #40) - Inventory, coupons, payment gateway
+
+**Total Medium Priority:** 20 issues
+**Estimated Time:** 80-100 hours
 
 ---
 
@@ -298,6 +466,50 @@ dc64aff - feat: Add Email Notification System with Resend
 
 ---
 
+## 🗓️ Development Roadmap
+
+### ✅ Phase 1: Foundation & Security (COMPLETE)
+**Timeline:** Completed
+**Status:** ✅ 100% (17/17 issues)
+- ✅ Critical security issues
+- ✅ High priority features
+- ✅ Purchase system
+- ✅ Admin management
+- ✅ Email notifications
+- ✅ Audit logging
+
+### 🎯 Phase 2: Core Features (NEXT)
+**Timeline:** 2-3 weeks
+**Status:** ⏳ 0% (0/20 issues)
+- ⏳ Product search & filters
+- ⏳ Bulk operations
+- ⏳ Analytics dashboard
+- ⏳ User profile management
+- ⏳ Password reset
+- ⏳ Order cancellation
+- ⏳ Inventory management
+- ⏳ Coupon system
+- ⏳ Payment gateway
+
+### 📋 Phase 3: Polish & Optimization (FUTURE)
+**Timeline:** 1-2 weeks
+**Status:** ⏳ 0% (0/15 issues)
+- ⏳ Dark mode
+- ⏳ Mobile optimization
+- ⏳ Internationalization
+- ⏳ Accessibility
+- ⏳ Performance monitoring
+- ⏳ SEO optimization
+- ⏳ API documentation
+- ⏳ Testing suite
+- ⏳ CI/CD pipeline
+
+**Total Roadmap:** 52 issues
+**Completed:** 17 issues (33%)
+**Remaining:** 35 issues (67%)
+
+---
+
 **Next Command Suggestions:**
 
 1. **RECOMMENDED:** Push and create PR:
@@ -312,7 +524,12 @@ dc64aff - feat: Add Email Notification System with Resend
 
 3. Start Medium Priority tasks:
    ```
-   เริ่มทำ Medium Priority Issues (Issue #19-28)
+   เริ่มทำ Issue #19: Product Search Functionality
+   ```
+
+4. View detailed roadmap:
+   ```
+   แสดง roadmap แบบละเอียด
    ```
 
 ---
@@ -325,4 +542,7 @@ dc64aff - feat: Add Email Notification System with Resend
 - ✅ Security Score: 99/100
 - ✅ Production Readiness: 95%
 
-Ready for code review and production deployment!
+**Ready for:**
+- ✅ Code review
+- ✅ Production deployment
+- ✅ Phase 2 development (Core Features)
