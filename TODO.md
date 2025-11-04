@@ -8,9 +8,9 @@
 **Issues Summary:**
 - ✅ Critical: 7/7 (100%)
 - ✅ High Priority: 10/10 (100%)
-- ⏳ Medium Priority: 1/20 (5%)
+- ⏳ Medium Priority: 1/25 (4%)
 - ⏳ Low Priority: 0/15 (0%)
-- **Total:** 18/52 issues (35% overall)
+- **Total:** 18/57 issues (32% overall)
 
 ---
 
@@ -62,6 +62,30 @@
 - [ ] Issue #44: Missing transaction history
 - [ ] Issue #45: No customer support chat/ticket system
 - [ ] Issue #46: Missing email templates customization
+
+**Admin Settings & Configuration (NEW):**
+- [ ] Issue #57: Admin Settings Page - Email Configuration
+  - Support email (support@pkmshop.com)
+  - Email notifications toggle
+- [ ] Issue #58: Admin Settings Page - SEO & Branding
+  - Site logo upload
+  - Site color scheme customization
+  - Favicon upload
+  - Shop name configuration
+  - Meta description and keywords
+- [ ] Issue #59: Cookie Consent Banner
+  - Cookie policy text
+  - Accept/Decline functionality
+  - Remember user preference
+- [ ] Issue #60: Category Management (CRUD)
+  - Add new categories
+  - Edit existing categories (BOX, PACK, PROMO)
+  - Delete unused categories
+  - Category ordering
+- [ ] Issue #61: Category Navigation on Navbar
+  - Display categories in navbar
+  - Filter products by category
+  - Active category highlight
 
 ### 📝 Low Priority Issues (0% - 0/15)
 
@@ -353,6 +377,60 @@ All High Priority issues are now complete! Ready for Medium Priority tasks.
 - [ ] Test backup and restore procedures
 - [ ] Document backup/restore process
 
+#### Issue #57: Admin Settings Page - Email Configuration
+**Estimated Time:** 2-3 hours
+- [ ] Create SiteSettings database model
+- [ ] Add support_email field
+- [ ] Create admin settings page UI
+- [ ] Add email configuration form
+- [ ] Save settings to database
+- [ ] Add validation for email format
+- [ ] Display current settings
+
+#### Issue #58: Admin Settings Page - SEO & Branding
+**Estimated Time:** 4-5 hours
+- [ ] Add SEO fields to SiteSettings (title, description, keywords)
+- [ ] Add branding fields (shop_name, logo_url, favicon_url, primary_color)
+- [ ] Create logo upload functionality
+- [ ] Create favicon upload functionality
+- [ ] Add color picker for primary color
+- [ ] Update site metadata dynamically
+- [ ] Add preview of changes
+- [ ] Show disclaimer: "This website is in no way affiliated with TPCi, Nintendo, Creatures, or Game Freak."
+
+#### Issue #59: Cookie Consent Banner
+**Estimated Time:** 2-3 hours
+- [ ] Create cookie consent banner component
+- [ ] Add cookie policy text
+- [ ] Implement Accept/Decline buttons
+- [ ] Store user preference in localStorage
+- [ ] Check preference on page load
+- [ ] Add link to privacy policy
+- [ ] Make banner dismissible
+
+#### Issue #60: Category Management (CRUD)
+**Estimated Time:** 4-5 hours
+- [ ] Create Category database model (if not exists)
+- [ ] Migrate existing categories (BOX, PACK, PROMO)
+- [ ] Create category management page in admin
+- [ ] Add Create category functionality
+- [ ] Add Edit category functionality
+- [ ] Add Delete category functionality
+- [ ] Add category ordering/sorting
+- [ ] Validate category uniqueness
+- [ ] Update products to use category relationships
+
+#### Issue #61: Category Navigation on Navbar
+**Estimated Time:** 3-4 hours
+- [ ] Fetch all categories for navbar
+- [ ] Display categories in navbar dropdown/menu
+- [ ] Add "All Products" option
+- [ ] Implement category filtering on shop page
+- [ ] Highlight active category
+- [ ] Show product count per category
+- [ ] Add mobile-responsive category menu
+- [ ] Persist selected category in URL
+
 ### 🚀 Missing Features (Issue #37-46) - RECOMMENDED SECOND
 
 #### Issue #37: Product Inventory Management
@@ -521,16 +599,20 @@ dc64aff - feat: Add Email Notification System with Resend
 
 ### 🎯 Phase 2: Core Features (NEXT)
 **Timeline:** 2-3 weeks
-**Status:** ⏳ 0% (0/20 issues)
+**Status:** ⏳ 4% (1/25 issues)
 - ⏳ Product search & filters
 - ⏳ Bulk operations
 - ⏳ Analytics dashboard
-- ⏳ User profile management
+- ✅ User profile management (Issue #24)
 - ⏳ Password reset
 - ⏳ Order cancellation
 - ⏳ Inventory management
 - ⏳ Coupon system
 - ⏳ Payment gateway
+- ⏳ Admin settings (email, SEO, branding)
+- ⏳ Cookie consent banner
+- ⏳ Category management (CRUD)
+- ⏳ Category navigation in navbar
 
 ### 📋 Phase 3: Polish & Optimization (FUTURE)
 **Timeline:** 1-2 weeks
@@ -545,9 +627,9 @@ dc64aff - feat: Add Email Notification System with Resend
 - ⏳ Testing suite
 - ⏳ CI/CD pipeline
 
-**Total Roadmap:** 52 issues
-**Completed:** 17 issues (33%)
-**Remaining:** 35 issues (67%)
+**Total Roadmap:** 57 issues
+**Completed:** 18 issues (32%)
+**Remaining:** 39 issues (68%)
 
 ---
 
