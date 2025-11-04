@@ -7,6 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import crypto from 'crypto'
 import { uploadRateLimiter, getClientIp } from '@/lib/rateLimit'
 import { hasStaffAccess, getUnauthorizedError } from '@/lib/utils/auth-helpers'
+import logger from '@/lib/logger'
 
 export const config = {
     api: {
@@ -163,7 +164,10 @@ export async function POST(request: Request) {
             { status: 200 }
         )
     } catch (error) {
-        console.error('Upload error:', error)
+        logger.error('Upload error:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        })
         return NextResponse.json(
             {
                 error: 'Upload failed',

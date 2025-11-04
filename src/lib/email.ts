@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { logger } from "./logger";
+import logger from "./logger";
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);

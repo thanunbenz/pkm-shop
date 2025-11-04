@@ -38,23 +38,32 @@ This document summarizes the security and performance improvements implemented f
 
 ---
 
-### ✅ 3. Rate Limiting
+### ✅ 3. Rate Limiting (Issue #14)
 **Files:**
 - `middleware.ts` - Global rate limiting
-- `src/lib/rate-limit.ts` - Rate limit helpers
+- `src/lib/rateLimit.ts` - Enhanced rate limit helpers with specialized limiters
+- `src/app/api/v1/cart/route.ts` - Cart operations
+- `src/app/api/v1/purchases/route.ts` - Checkout and purchase history
+- `src/app/api/v1/codes/route.ts` - Code management
+- `src/app/api/v1/products/route.ts` - Product management
+- `src/app/api/v1/banners/route.ts` - Banner management
 
-**Configuration:**
-| Route | Limit |
-|-------|-------|
-| /api/auth | 5 req/min |
-| /api/v1/register | 3 req/min |
-| /api/v1/upload | 10 req/min |
-| /api/v1/* | 30 req/min |
+**Specialized Rate Limiters:**
+| Limiter Type | Limit | Use Case |
+|--------------|-------|----------|
+| authRateLimiter | 5 req/hour | Auth endpoints (brute force protection) |
+| adminRateLimiter | 30 req/min | Admin operations |
+| writeRateLimiter | 20 req/min | Write operations (checkout) |
+| uploadRateLimiter | 10 req/min | File uploads |
+| publicRateLimiter | 100 req/min | Public read endpoints |
+| cartRateLimiter | 30 req/min | Cart operations |
+| apiRateLimiter | 60 req/min | General API endpoints |
 
 **Features:**
-- IP-based limiting
-- Proxy support (x-forwarded-for)
-- 429 responses with Retry-After header
+- IP-based limiting with proxy support (x-forwarded-for, x-real-ip)
+- 429 responses with standard X-RateLimit-* headers
+- Per-endpoint specialized rate limiting
+- Consistent error responses across all endpoints
 
 ---
 
@@ -110,13 +119,19 @@ This document summarizes the security and performance improvements implemented f
 
 | Endpoint | Auth | Validation | Rate Limit | File Check |
 |----------|------|------------|------------|------------|
-| POST /api/v1/banners | ✅ | ✅ | ✅ | - |
-| PUT /api/v1/banners/[id] | ✅ | ✅ | ✅ | - |
-| POST /api/v1/codes | ✅ | ✅ | ✅ | - |
-| PUT /api/v1/codes/[id] | ✅ | ✅ | ✅ | - |
-| POST /api/v1/cart | ✅ | ✅ | ✅ | - |
-| POST /api/v1/upload | ✅ | ✅ | ✅ | ✅ |
-| PUT /api/v1/upload/[id] | ✅ | ✅ | ✅ | ✅ |
+| GET /api/v1/banners | - | - | ✅ (100/min) | - |
+| POST /api/v1/banners | ✅ | ✅ | ✅ (30/min) | - |
+| PUT /api/v1/banners/[id] | ✅ | ✅ | ✅ (30/min) | - |
+| POST /api/v1/codes | ✅ | ✅ | ✅ (30/min) | - |
+| PUT /api/v1/codes/[id] | ✅ | ✅ | ✅ (30/min) | - |
+| GET /api/v1/products | ✅ | - | ✅ (30/min) | - |
+| POST /api/v1/cart | ✅ | ✅ | ✅ (30/min) | - |
+| PUT /api/v1/cart | ✅ | ✅ | ✅ (30/min) | - |
+| DELETE /api/v1/cart | ✅ | ✅ | ✅ (30/min) | - |
+| GET /api/v1/purchases | ✅ | - | ✅ (100/min) | - |
+| POST /api/v1/purchases | ✅ | ✅ | ✅ (20/min) | - |
+| POST /api/v1/upload | ✅ | ✅ | ✅ (10/min) | ✅ |
+| PUT /api/v1/upload/[id] | ✅ | ✅ | ✅ (10/min) | ✅ |
 
 ---
 

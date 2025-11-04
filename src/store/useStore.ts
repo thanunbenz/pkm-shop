@@ -19,7 +19,7 @@ export const useStore = create<Store>((set) => ({
             set({ listProducts: data.count });
             return data.count;
         } catch (error) {
-            console.error('Error fetching product count:', error);
+            // Network error handled - returning 0
             return 0;
         }
     },
@@ -34,7 +34,7 @@ export const useStore = create<Store>((set) => ({
             set({ listProducts: data.count });
             return data.count;
         } catch (error) {
-            console.error('Error fetching code count:', error);
+            // Network error handled - returning 0
             return 0;
         }
     },

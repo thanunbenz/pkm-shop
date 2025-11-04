@@ -99,7 +99,7 @@ export default function RegisterPage() {
         }
       }
     } catch (error) {
-      console.error("Error during registration:", error);
+      // Error is shown to user via toast
       showToastError("Something went wrong. Please try again later.");
       return;
     }

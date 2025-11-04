@@ -61,7 +61,6 @@ export default function BannerManagement() {
         setTotalBanners(result.pagination.total);
       }
     } catch (error) {
-      console.error("Error fetching banners:", error);
       showToastError("ไม่สามารถโหลดข้อมูล Banner ได้");
     } finally {
       setIsLoading(false);
@@ -132,7 +131,6 @@ export default function BannerManagement() {
       }));
       showToastSuccess(`อัปโหลด ${file.name} สำเร็จ`);
     } catch (error) {
-      console.error("Upload failed:", error);
       const errorMessage = error instanceof Error ? error.message : "อัปโหลดรูปภาพไม่สำเร็จ";
       showToastError(errorMessage);
     } finally {
@@ -162,7 +160,6 @@ export default function BannerManagement() {
           uploadedImageId = String(uploadedFile.id);
           uploadedImagePath = uploadedFile.path;
         } catch (uploadError) {
-          console.error('Upload failed:', uploadError);
           showToastError('อัปโหลดรูปภาพไม่สำเร็จ');
           setUploading(false);
           return;
@@ -205,7 +202,6 @@ export default function BannerManagement() {
       fetchBanners();
       closeModal();
     } catch (error) {
-      console.error("Error saving banner:", error);
       const errorMessage = error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
       showToastError(errorMessage);
 
@@ -216,7 +212,7 @@ export default function BannerManagement() {
             method: 'DELETE',
           });
         } catch (deleteError) {
-          console.error("Failed to delete image:", deleteError);
+          // Error: Failed to delete uploaded image
         }
       }
     } finally {
@@ -237,7 +233,6 @@ export default function BannerManagement() {
       showToastSuccess("ลบ Banner สำเร็จ");
       fetchBanners();
     } catch (error) {
-      console.error("Error deleting banner:", error);
       showToastError("ลบ Banner ไม่สำเร็จ");
     }
   };
@@ -255,7 +250,6 @@ export default function BannerManagement() {
       showToastSuccess("เปลี่ยนสถานะสำเร็จ");
       fetchBanners();
     } catch (error) {
-      console.error("Error toggling banner:", error);
       showToastError("เปลี่ยนสถานะไม่สำเร็จ");
     }
   };
@@ -329,7 +323,6 @@ export default function BannerManagement() {
       showToastSuccess("อัปเดตลำดับสำเร็จ");
       fetchBanners();
     } catch (error) {
-      console.error("Error updating order:", error);
       showToastError("อัปเดตลำดับไม่สำเร็จ");
     }
 

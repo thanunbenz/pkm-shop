@@ -38,7 +38,6 @@ export default function SettingsPage() {
         showWelcome: result.data.showWelcome,
       });
     } catch (error) {
-      console.error("Error fetching settings:", error);
       showToastError("ไม่สามารถโหลดข้อมูล Settings ได้");
     } finally {
       setIsLoading(false);
@@ -65,7 +64,6 @@ export default function SettingsPage() {
       showToastSuccess("บันทึกการตั้งค่าสำเร็จ");
       fetchSettings();
     } catch (error) {
-      console.error("Error saving settings:", error);
       const errorMessage = error instanceof Error ? error.message : "บันทึกข้อมูลไม่สำเร็จ";
       showToastError(errorMessage);
     } finally {

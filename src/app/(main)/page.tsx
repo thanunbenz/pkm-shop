@@ -43,7 +43,6 @@ export default function Page() {
       const result = await response.json();
       setSettings(result.data);
     } catch (error) {
-      console.error("Error fetching settings:", error);
       // Use default values if fetch fails
       setSettings({
         welcomeTitle: "Welcome to PKM Shop",
@@ -60,7 +59,6 @@ export default function Page() {
       const result = await response.json();
       setRecommendProducts(result.data || []);
     } catch (error) {
-      console.error("Error fetching recommend products:", error);
       setRecommendProducts([]);
     }
   };

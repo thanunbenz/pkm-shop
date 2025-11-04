@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rotateRefreshToken } from "@/lib/utils/refresh-token";
 import { sign } from "jsonwebtoken";
+import logger from "@/lib/logger";
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error("NEXTAUTH_SECRET is not defined in environment variables");
@@ -80,7 +81,10 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error refreshing token:", error);
+    logger.error("Error refreshing token:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

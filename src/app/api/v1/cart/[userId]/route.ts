@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import logger from "@/lib/logger";
 
 // GET - Get cart for a specific user
 export async function GET(
@@ -75,7 +76,10 @@ export async function GET(
 
     return NextResponse.json({ success: true, items });
   } catch (error) {
-    console.error("Error fetching cart:", error);
+    logger.error("Error fetching cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { error: "Failed to fetch cart" },
       { status: 500 }
@@ -124,7 +128,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: "Cart cleared" });
   } catch (error) {
-    console.error("Error clearing cart:", error);
+    logger.error("Error clearing cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { error: "Failed to clear cart" },
       { status: 500 }

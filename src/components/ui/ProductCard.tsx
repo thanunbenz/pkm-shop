@@ -68,7 +68,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           }),
         });
       } catch (error) {
-        console.error("Failed to sync cart with server:", error);
+        // Cart sync error handled silently - local cart still works
       }
     }
 

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { siteSettingsUpdateSchema } from "@/lib/validations/site-settings";
+import logger from "@/lib/logger";
 
 // GET - ดึง site settings (Public)
 export async function GET() {
@@ -23,7 +24,10 @@ export async function GET() {
 
         return NextResponse.json({ success: true, data: settings });
     } catch (error) {
-        console.error("Error fetching settings:", error);
+        logger.error("Error fetching settings:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Failed to fetch settings" },
             { status: 500 }
@@ -87,7 +91,10 @@ export async function PUT(request: NextRequest) {
 
         return NextResponse.json({ success: true, data: settings });
     } catch (error) {
-        console.error("Error updating settings:", error);
+        logger.error("Error updating settings:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Failed to update settings" },
             { status: 500 }

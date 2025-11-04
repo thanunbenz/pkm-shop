@@ -4,10 +4,25 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import logger from "@/lib/logger";
 import { parseIntSafe, parsePositiveIntSafe } from "@/lib/utils/parse";
+import { cartRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
 
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
+    // ✅ Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await cartRateLimiter.check(`cart:${clientIp}`);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+        }
+      );
+    }
+
     const session = await getServerSession(authOptions);
 
     // ✅ Require authentication
@@ -115,8 +130,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to add to cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to add to cart" },
+      { status: 500 }
     );
   }
 }
@@ -226,8 +241,8 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to update cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to update cart" },
+      { status: 500 }
     );
   }
 }
@@ -289,8 +304,8 @@ export async function DELETE(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to remove from cart" },
-      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
+      { error: "Failed to remove from cart" },
+      { status: 500 }
     );
   }
 }

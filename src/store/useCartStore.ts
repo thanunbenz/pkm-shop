@@ -105,7 +105,7 @@ export const useCartStore = create<CartStore>()(
           // Load updated cart from server
           await get().loadFromServer(userId);
         } catch (error) {
-          console.error('Failed to sync cart:', error);
+          // Cart sync error handled - local cart still works
         }
       },
 
@@ -118,7 +118,7 @@ export const useCartStore = create<CartStore>()(
           const data = await response.json();
           set({ items: data.items || [] });
         } catch (error) {
-          console.error('Failed to load cart from server:', error);
+          // Failed to load cart - using local cart
         }
       },
     }),

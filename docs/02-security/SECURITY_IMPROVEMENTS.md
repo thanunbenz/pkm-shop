@@ -141,48 +141,211 @@ SENTRY_AUTH_TOKEN="your-auth-token"
 
 ---
 
-## 3. Rate Limiting
+## 3. Rate Limiting (Issue #14)
 
-### Global Rate Limiting
-**Location:** `middleware.ts`
+### Overview
+Comprehensive rate limiting protection for all critical API endpoints with specialized limiters for different endpoint types.
 
-**Configuration:**
+### Specialized Rate Limiters
+**Location:** `src/lib/rateLimit.ts`
+
+#### Rate Limiter Types
+
+**1. authRateLimiter**
+- **Limit:** 5 requests per hour
+- **Use Case:** Authentication endpoints
+- **Protection:** Brute force attacks on login/auth
+- **Window:** 60 minutes
 ```typescript
-{
-  '/api/auth': 5 requests/minute          // Authentication
-  '/api/v1/register': 3 requests/minute   // Registration
-  '/api/v1/upload': 10 requests/minute    // File uploads
-  '/api/v1': 30 requests/minute           // General API
-}
+export const authRateLimiter = new RateLimiter(
+  60 * 60 * 1000, // 1 hour window
+  5 // 5 requests per hour
+);
 ```
 
-**Features:**
-- IP-based rate limiting
-- Proxy support (x-forwarded-for, x-real-ip)
-- 60-second sliding window
-- 500 unique tokens per interval
-- Returns 429 status with Retry-After header
-
-**Response on Rate Limit:**
-```json
-{
-  "success": false,
-  "error": "Rate limit exceeded. Please try again later."
-}
+**2. adminRateLimiter**
+- **Limit:** 30 requests per minute
+- **Use Case:** Admin operations (codes, products, banners)
+- **Protection:** Admin API abuse prevention
+- **Window:** 1 minute
+```typescript
+export const adminRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  30 // 30 requests per minute
+);
 ```
 
-**Headers:**
-- `Retry-After: 60` - Seconds until reset
+**3. writeRateLimiter**
+- **Limit:** 20 requests per minute
+- **Use Case:** Write operations (checkout, purchase)
+- **Protection:** Transaction spam prevention
+- **Window:** 1 minute
+```typescript
+export const writeRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  20 // 20 requests per minute
+);
+```
+
+**4. uploadRateLimiter**
+- **Limit:** 10 requests per minute
+- **Use Case:** File upload endpoints
+- **Protection:** Upload spam and DoS prevention
+- **Window:** 1 minute
+```typescript
+export const uploadRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  10 // 10 requests per minute
+);
+```
+
+**5. publicRateLimiter**
+- **Limit:** 100 requests per minute
+- **Use Case:** Public read endpoints (banners, purchases list)
+- **Protection:** DoS prevention with generous limits
+- **Window:** 1 minute
+```typescript
+export const publicRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  100 // 100 requests per minute
+);
+```
+
+**6. cartRateLimiter**
+- **Limit:** 30 requests per minute
+- **Use Case:** Cart operations (add, update, delete)
+- **Protection:** Cart spam prevention
+- **Window:** 1 minute
+```typescript
+export const cartRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  30 // 30 requests per minute
+);
+```
+
+**7. apiRateLimiter**
+- **Limit:** 60 requests per minute
+- **Use Case:** General API endpoints
+- **Protection:** General API abuse prevention
+- **Window:** 1 minute
+```typescript
+export const apiRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  60 // 60 requests per minute
+);
+```
 
 ---
 
-### Route-Specific Rate Limiters
-**Location:** `src/lib/rate-limit.ts`
+### Rate Limit Helper Functions
 
-**Functions:**
-- `apiRateLimit()` - 30 req/min for general API
-- `authRateLimit()` - 5 req/min for authentication
-- `uploadRateLimit()` - 10 req/min for file uploads
+#### `getClientIp(request: NextRequest): string`
+Extracts client IP address with proxy support
+```typescript
+const clientIp = getClientIp(request);
+// Checks: x-forwarded-for → x-real-ip → request IP
+```
+
+#### `createRateLimitHeaders(limit, remaining, resetTime)`
+Creates standard rate limit headers
+```typescript
+{
+  'X-RateLimit-Limit': '30',
+  'X-RateLimit-Remaining': '25',
+  'X-RateLimit-Reset': '2025-01-01T00:01:00.000Z'
+}
+```
+
+---
+
+### Endpoint Rate Limiting Coverage
+
+#### Cart Endpoints
+**File:** `src/app/api/v1/cart/route.ts`
+- **POST /cart** - Add to cart (30 req/min)
+- **PUT /cart** - Update cart (30 req/min - not yet implemented)
+- **DELETE /cart** - Remove from cart (30 req/min - not yet implemented)
+
+#### Purchase Endpoints
+**File:** `src/app/api/v1/purchases/route.ts`
+- **POST /purchases** - Checkout (20 req/min - strict)
+- **GET /purchases** - Order history (100 req/min - generous)
+
+#### Code Management
+**File:** `src/app/api/v1/codes/route.ts`
+- **POST /codes** - Create code (30 req/min)
+
+#### Product Management
+**File:** `src/app/api/v1/products/route.ts`
+- **GET /products** - List products (30 req/min)
+
+#### Banner Management
+**File:** `src/app/api/v1/banners/route.ts`
+- **GET /banners** - Public banner list (100 req/min)
+- **POST /banners** - Create banner (30 req/min)
+
+#### Upload Endpoints
+**File:** `src/app/api/v1/upload/[id]/route.ts`
+- **PUT /upload/[id]** - Update upload (10 req/min)
+
+---
+
+### Rate Limit Response Format
+
+**On Rate Limit Exceeded (429):**
+```json
+{
+  "success": false,
+  "error": "Too many requests. Please try again later."
+}
+```
+
+**Response Headers:**
+```
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 30
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 2025-01-01T00:01:00.000Z
+```
+
+---
+
+### Implementation Pattern
+
+Standard pattern for all endpoints:
+```typescript
+export async function POST(request: NextRequest) {
+  try {
+    // ✅ Rate limiting
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await cartRateLimiter.check(`cart:${clientIp}`);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+        }
+      );
+    }
+
+    // ... rest of endpoint logic
+  } catch (error) {
+    // ... error handling
+  }
+}
+```
+
+---
+
+### Features
+- **IP-based limiting** with proxy support (x-forwarded-for, x-real-ip)
+- **Sliding window** algorithm for accurate rate limiting
+- **Standard headers** (X-RateLimit-*) for API consumers
+- **Per-endpoint specialization** based on security needs
+- **Consistent error responses** across all endpoints
+- **In-memory storage** (suitable for single-instance deployments)
 
 ---
 

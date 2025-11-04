@@ -5,9 +5,27 @@ import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { codeCreateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
+import logger from "@/lib/logger";
+import { formatZodIssues } from "@/types/validation";
+import { adminRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
+import { logCreate, getClientIp as getAuditClientIp } from "@/lib/utils/audit-logger";
 
 export async function POST(request: NextRequest) {
     try {
+        // ✅ Rate limiting for admin code creation
+        const clientIp = getClientIp(request);
+        const rateLimitResult = await adminRateLimiter.check(`codes-post:${clientIp}`);
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { success: false, error: "Too many requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         // ✅ Allow OPERATOR and ADMIN
@@ -44,6 +62,21 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        // ✅ Audit log: Code created
+        await logCreate(
+            session.user.id,
+            'Code',
+            newCode.id.toString(),
+            `Created code: ${newCode.code} for product ID: ${newCode.productId}`,
+            {
+                code: newCode.code,
+                productId: newCode.productId,
+                isUsed: newCode.isUsed,
+            },
+            getAuditClientIp(request),
+            request.headers.get('user-agent') || undefined
+        );
+
         return NextResponse.json(
             { success: true, data: newCode },
             { status: 201 }
@@ -54,16 +87,16 @@ export async function POST(request: NextRequest) {
                 {
                     success: false,
                     error: "ข้อมูลไม่ถูกต้อง",
-                    details: error.issues.map((e: any) => ({
-                        field: e.path.join('.'),
-                        message: e.message
-                    }))
+                    details: formatZodIssues(error.issues)
                 },
                 { status: 400 }
             );
         }
 
-        console.error("Error creating code:", error);
+        logger.error("Error creating code:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Internal Server Error" },
             { status: 500 }

@@ -16,7 +16,6 @@ export default function AddCodeButton() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         // TODO: Implement code submission logic
-        console.log('Submitting code:', code)
         handleToggleModal()
     }
 

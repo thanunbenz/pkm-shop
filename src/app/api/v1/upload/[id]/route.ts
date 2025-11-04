@@ -8,6 +8,7 @@ import path from 'path'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/authOptions'
 import { hasStaffAccess, getUnauthorizedError } from '@/lib/utils/auth-helpers'
+import logger from '@/lib/logger'
 
 // MIME type signatures for validation
 const MIME_SIGNATURES: { [key: string]: number[][] } = {
@@ -86,10 +87,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
         try {
             await fs.unlink(filePath);
-            console.log(`Successfully deleted file: ${filePath}`);
+            logger.info('Successfully deleted file:', { filePath });
         } catch (err) {
-            console.error('Error deleting file:', err);
-            console.error('Attempted path:', filePath);
+            logger.error('Error deleting file:', {
+                error: err instanceof Error ? err.message : 'Unknown error',
+                stack: err instanceof Error ? err.stack : undefined,
+                attemptedPath: filePath
+            });
             // Don't return error here, continue to delete from database
         }
 
@@ -102,7 +106,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
             { status: 200 }
         )
     } catch (error) {
-        console.error(error)
+        logger.error('Error in DELETE /api/v1/upload/[id]:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        })
         return NextResponse.json(
             {
                 error: 'An error occurred while deleting the file',
@@ -280,15 +287,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         try {
             await fs.unlink(oldFilePath);
-            console.log(`Successfully deleted old file: ${oldFilePath}`);
+            logger.info('Successfully deleted old file:', { oldFilePath });
         } catch (err) {
-            console.error('Error deleting old file:', err);
+            logger.error('Error deleting old file:', {
+                error: err instanceof Error ? err.message : 'Unknown error',
+                stack: err instanceof Error ? err.stack : undefined
+            });
             // Continue even if deletion fails
         }
 
         return NextResponse.json({ file: updatedFile });
     } catch (error) {
-        console.error("Error updating file:", error);
+        logger.error('Error updating file:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { error: "An error occurred while updating the file" },
             { status: 500 }

@@ -119,7 +119,7 @@ export default function OrdersPage() {
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      // Error: Failed to copy code to clipboard
     }
   };
 

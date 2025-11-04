@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import logger from "@/lib/logger";
+import { Prisma } from "@prisma/client";
 
 // GET - Get all codes from user's completed purchases
 export async function GET(request: NextRequest) {
@@ -61,7 +62,36 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform data to group codes by purchase
-    const formattedPurchases = purchases.map((purchase: any) => ({
+    type PurchaseWithDetails = Prisma.PurchaseGetPayload<{
+      include: {
+        product: {
+          select: {
+            id: true;
+            name: true;
+            image: true;
+            category: true;
+          };
+        };
+        purchaseCodes: {
+          include: {
+            code: {
+              select: {
+                id: true;
+                code: true;
+                isUsed: true;
+              };
+            };
+          };
+        };
+        payment: {
+          select: {
+            paymentStatus: true;
+          };
+        };
+      };
+    }>;
+
+    const formattedPurchases = purchases.map((purchase: PurchaseWithDetails) => ({
       purchaseId: purchase.id,
       productId: purchase.product.id,
       productName: purchase.product.name,
@@ -70,8 +100,8 @@ export async function GET(request: NextRequest) {
       quantity: purchase.quantity,
       totalAmount: purchase.totalAmount,
       purchaseDate: purchase.createdAt,
-      paidDate: (purchase.payment as any)?.paidAt || purchase.createdAt,
-      codes: purchase.purchaseCodes.map((pc: any) => ({
+      paidDate: purchase.createdAt, // Use createdAt as paidDate is not selected
+      codes: purchase.purchaseCodes.map((pc) => ({
         id: pc.code.id,
         code: pc.code.code,
         isUsed: pc.code.isUsed,
