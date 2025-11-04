@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { updateProductSchema } from "@/lib/validations/product";
+import logger from "@/lib/logger";
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
     try {
@@ -29,7 +30,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
         return NextResponse.json({ success: true, data: product });
     } catch (error) {
-        console.error(`Error fetching product ${params.id}:`, error);
+        logger.error("Error fetching product:", {
+            productId: params.id,
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
             { status: 500 }
@@ -69,7 +74,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const product = await updateProduct(id, validationResult.data as Prisma.ProductUpdateInput);
         return NextResponse.json({ success: true, data: product });
     } catch (error) {
-        console.error("Error updating product:", error);
+        logger.error("Error updating product:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { error: "Failed to update product" },
             { status: 500 }
@@ -100,14 +108,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             );
         }
 
-        console.log(`Deleting product ${id} with imageId: ${productToDelete.imageId}`);
+        logger.info("Deleting product:", {
+            productId: id,
+            imageId: productToDelete.imageId
+        });
 
         // Delete the product
         const product = await deleteProduct(id);
 
         // Delete associated image if exists
         if (productToDelete.imageId && productToDelete.imageId !== "-") {
-            console.log(`Calling DELETE /api/v1/upload/${productToDelete.imageId}`);
+            logger.info("Calling DELETE for product image:", {
+                imageId: productToDelete.imageId
+            });
             try {
                 const deleteResponse = await fetch(`${request.nextUrl.origin}/api/v1/upload/${productToDelete.imageId}`, {
                     method: "DELETE",
@@ -116,13 +129,18 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
                     },
                 });
                 const deleteResult = await deleteResponse.json();
-                console.log(`Image deletion result:`, deleteResult);
+                logger.info("Image deletion result:", { result: deleteResult });
             } catch (imageError) {
-                console.error("Failed to delete product image:", imageError);
+                logger.error("Failed to delete product image:", {
+                    error: imageError instanceof Error ? imageError.message : "Unknown error",
+                    stack: imageError instanceof Error ? imageError.stack : undefined
+                });
                 // Continue even if image deletion fails
             }
         } else {
-            console.log(`No image to delete (imageId: ${productToDelete.imageId})`);
+            logger.info("No image to delete:", {
+                imageId: productToDelete.imageId
+            });
         }
 
         return NextResponse.json({
@@ -131,7 +149,10 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             imageId: product.imageId
         });
     } catch (error) {
-        console.error("Error deleting product:", error);
+        logger.error("Error deleting product:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { error: "Failed to delete product" },
             { status: 500 }

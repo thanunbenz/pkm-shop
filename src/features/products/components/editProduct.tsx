@@ -87,7 +87,7 @@ export default function Page() {
             setImageId(data.imageId);
             setIsLoading(false);
         } catch (error) {
-            console.error('Error fetching product:', error);
+            // Error: Failed to fetch product data
             setIsLoading(false);
         }
     };
@@ -119,7 +119,6 @@ export default function Page() {
                 showToastSuccess('Upload successful');
                 setUploading(true);
             } catch (error) {
-                console.error('Upload failed:', error);
                 showToastError('Upload failed');
             }
         } else {
@@ -141,7 +140,6 @@ export default function Page() {
                 showToastSuccess('Upload successful');
                 setUploading(true);
             } catch (error) {
-                console.error('Upload failed:', error);
                 showToastError('Upload failed');
             }
         }
@@ -175,7 +173,6 @@ export default function Page() {
             setIsOpen(false);
         } else {
             const errorData = await response.json().catch(() => ({}));
-            console.error('Update failed:', errorData);
             toast.error(errorData.error || 'Failed to update product');
         }
         setUploading(false);

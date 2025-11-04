@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { UPLOAD_CONFIG } from "@/config/constants";
+import logger from "@/lib/logger";
 
 // Try to import Zod schemas
 let productQuerySchema: any = null;
@@ -17,7 +18,7 @@ try {
     validationErrorResponse = validationError.validationErrorResponse;
     isZodError = validationError.isZodError;
 } catch (error) {
-    console.log("Zod not installed, using simplified query handling");
+    logger.info("Zod not installed, using simplified query handling");
 }
 
 // Add caching configuration
@@ -117,7 +118,10 @@ export async function GET(request: NextRequest) {
             }
         );
     } catch (error) {
-        console.error("Error fetching products:", error);
+        logger.error("Error fetching products:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
 
         if (isZodError && isZodError(error)) {
             return validationErrorResponse(error);
@@ -191,7 +195,10 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(product);
     } catch (error) {
-        console.error("Error creating product:", error);
+        logger.error("Error creating product:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { error: "Internal Server Error" },
             { status: 500 }

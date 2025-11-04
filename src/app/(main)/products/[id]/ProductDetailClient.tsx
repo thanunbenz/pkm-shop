@@ -54,7 +54,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           }),
         });
       } catch (error) {
-        console.error("Failed to sync cart with server:", error);
+        // Error: Failed to sync cart with server
       }
     }
 

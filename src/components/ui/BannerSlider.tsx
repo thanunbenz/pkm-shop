@@ -42,7 +42,7 @@ export default function BannerSlider() {
       const result = await response.json();
       setBanners(result.data || []);
     } catch (error) {
-      console.error("Error fetching banners:", error);
+      // Error handled silently - empty banner state will be shown
     } finally {
       setIsLoading(false);
     }

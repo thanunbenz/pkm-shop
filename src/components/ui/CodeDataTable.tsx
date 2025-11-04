@@ -35,7 +35,7 @@ export default function CodeDataTable({ productId, refreshTrigger, onEditCode }:
             const result = await response.json();
             setCodes(result.data.code || []);
         } catch (error) {
-            console.error("Error fetching codes:", error);
+            // Error handled - empty codes state will be shown
             setCodes([]);
         }
     };
@@ -56,7 +56,7 @@ export default function CodeDataTable({ productId, refreshTrigger, onEditCode }:
 
             fetchCodes();
         } catch (error) {
-            console.error("Error deleting code:", error);
+            // Error deleting code - user already confirmed action
         }
     };
 

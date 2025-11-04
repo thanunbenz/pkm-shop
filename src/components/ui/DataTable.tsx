@@ -71,9 +71,9 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
             if (!response.ok) throw new Error("Failed to delete product");
 
             const result = await response.json();
-            console.log("Deleted product:", result);
+            // Product deleted successfully
         } catch (error) {
-            console.error("Error deleting:", error);
+            // Error deleting product - user already confirmed action
         }
     };
 
@@ -93,7 +93,6 @@ export default function DataTableComponent({ initialProducts }: DataTableProps) 
                         return;
                     } catch (e) {
                         // If update fails, destroy completely and reinit
-                        console.log("Destroying and reinitializing DataTable");
                         try {
                             dataTableRef.current.destroy(true); // true = remove all events
                         } catch (err) {

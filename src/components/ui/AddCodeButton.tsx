@@ -103,7 +103,6 @@ export default function AddCodeButton({ productId, onCodeAdded, editingCode, onC
             toggleModal();
             onCodeAdded();
         } catch (error) {
-            console.error("Error saving code:", error);
             const errorMessage = error instanceof Error ? error.message : "บันทึก Code ไม่สำเร็จ";
             showToastError(errorMessage);
         } finally {

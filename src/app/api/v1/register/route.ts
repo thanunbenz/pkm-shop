@@ -2,6 +2,7 @@ import prisma from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcrypt";
 import { authRateLimiter, getClientIp } from "@/lib/rateLimit";
+import logger from "@/lib/logger";
 
 // Try to import Zod, fallback to manual validation
 let registerSchema: any = null;
@@ -15,7 +16,7 @@ try {
     validationErrorResponse = validationError.validationErrorResponse;
     isZodError = validationError.isZodError;
 } catch (error) {
-    console.log("Zod not installed, using manual validation");
+    logger.info("Zod not installed, using manual validation");
 }
 
 // Manual validation function (fallback)
@@ -148,7 +149,10 @@ export async function POST(req: NextRequest) {
             }
         );
     } catch (error) {
-        console.error("Registration Error:", error);
+        logger.error("Registration Error:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
 
         if (isZodError && isZodError(error)) {
             return validationErrorResponse(error);

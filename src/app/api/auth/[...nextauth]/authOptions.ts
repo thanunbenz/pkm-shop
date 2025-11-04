@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcrypt";
 import prisma from "@/lib/db";
 import { createRefreshToken } from "@/lib/utils/refresh-token";
+import logger from "@/lib/logger";
 
 if (!process.env.NEXTAUTH_SECRET) {
   throw new Error("NEXTAUTH_SECRET is not defined in environment variables");
@@ -49,7 +50,10 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
           };
         } catch (error) {
-          console.error("Auth Error:", error);
+          logger.error("Auth Error:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+          });
           throw error;
         }
       },
@@ -72,7 +76,10 @@ export const authOptions: NextAuthOptions = {
           await createRefreshToken(parseInt(user.id));
           return true;
         } catch (error) {
-          console.error("Error creating refresh token:", error);
+          logger.error("Error creating refresh token:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+          });
           // Still allow sign in even if refresh token creation fails
           return true;
         }

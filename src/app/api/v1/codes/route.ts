@@ -5,6 +5,7 @@ import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { codeCreateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
+import logger from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
     try {
@@ -63,7 +64,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.error("Error creating code:", error);
+        logger.error("Error creating code:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Internal Server Error" },
             { status: 500 }

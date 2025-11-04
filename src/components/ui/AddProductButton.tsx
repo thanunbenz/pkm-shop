@@ -27,14 +27,9 @@ export default function AddProductButton() {
 
 
     const toggleModal = () => {
-        console.log("Toggle modal clicked, current isOpen:", isOpen);
         setIsOpen((prev) => !prev);
         retrieveProductCount();
     };
-
-    useEffect(() => {
-        console.log("isOpen changed to:", isOpen);
-    }, [isOpen]);
 
     useEffect(() => {
         if (!isSale) {
@@ -97,7 +92,6 @@ export default function AddProductButton() {
                     uploadedImageId = String(uploadedFile.id);
                     uploadedImagePath = uploadedFile.path;
                 } catch (uploadError) {
-                    console.error('Upload failed:', uploadError);
                     showToastError('อัปโหลดรูปภาพไม่สำเร็จ');
                     setUploading(false);
                     return;
@@ -143,7 +137,6 @@ export default function AddProductButton() {
             toggleModal();
             showToastSuccess("Product created successfully!");
         } catch (error) {
-            console.error("Error occurred:", error);
             showToastError("Failed to create product");
 
             // ถ้าอัพโหลดรูปสำเร็จแล้วแต่สร้าง Product ไม่สำเร็จ ให้ลบรูปออก
@@ -153,7 +146,7 @@ export default function AddProductButton() {
                         method: 'DELETE',
                     });
                 } catch (deleteError) {
-                    console.error("Failed to delete image:", deleteError);
+                    // Failed to cleanup uploaded image
                 }
             }
         } finally {

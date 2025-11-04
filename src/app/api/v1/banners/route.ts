@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
 import { bannerCreateSchema } from "@/lib/validations/banner";
 import { ZodError } from "zod";
+import logger from "@/lib/logger";
 
 // GET - ดึงรายการ banners (Public: แค่ active, Admin: ทั้งหมด)
 export async function GET(request: NextRequest) {
@@ -47,7 +48,10 @@ export async function GET(request: NextRequest) {
             }
         });
     } catch (error) {
-        console.error("Error fetching banners:", error);
+        logger.error("Error fetching banners:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Failed to fetch banners" },
             { status: 500 }
@@ -100,7 +104,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.error("Error creating banner:", error);
+        logger.error("Error creating banner:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            stack: error instanceof Error ? error.stack : undefined
+        });
         return NextResponse.json(
             { success: false, error: "Failed to create banner" },
             { status: 500 }
