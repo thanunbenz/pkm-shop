@@ -66,20 +66,47 @@ class RateLimiter {
   }
 }
 
-// Rate limiters for different endpoints
+// Rate limiters for different endpoint categories
+// Auth endpoints (login, register) - Very strict
 export const authRateLimiter = new RateLimiter(
   60 * 60 * 1000, // 1 hour window
-  5 // 5 requests per hour
+  5 // 5 requests per hour (protect against brute force)
 );
 
+// Sensitive admin endpoints (user management, settings) - Strict
+export const adminRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  30 // 30 requests per minute
+);
+
+// Write operations (POST, PUT, DELETE) - Moderate
+export const writeRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  20 // 20 requests per minute
+);
+
+// Upload endpoints - Moderate (prevents abuse)
 export const uploadRateLimiter = new RateLimiter(
   60 * 1000, // 1 minute window
   10 // 10 requests per minute
 );
 
-export const apiRateLimiter = new RateLimiter(
+// Public read endpoints - Generous
+export const publicRateLimiter = new RateLimiter(
   60 * 1000, // 1 minute window
   100 // 100 requests per minute
+);
+
+// Cart/Checkout endpoints - Moderate (prevent cart spam)
+export const cartRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  30 // 30 requests per minute
+);
+
+// General API fallback - Moderate
+export const apiRateLimiter = new RateLimiter(
+  60 * 1000, // 1 minute window
+  60 // 60 requests per minute
 );
 
 // Helper function to get client IP
@@ -96,4 +123,19 @@ export function getClientIp(request: Request): string {
   }
 
   return 'unknown';
+}
+
+/**
+ * Create rate limit headers for response
+ */
+export function createRateLimitHeaders(
+  limit: number,
+  remaining: number,
+  resetTime: number
+): Record<string, string> {
+  return {
+    'X-RateLimit-Limit': limit.toString(),
+    'X-RateLimit-Remaining': remaining.toString(),
+    'X-RateLimit-Reset': new Date(resetTime).toISOString(),
+  };
 }

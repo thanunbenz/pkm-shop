@@ -7,10 +7,25 @@ import { bannerCreateSchema } from "@/lib/validations/banner";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { formatZodIssues } from "@/types/validation";
+import { publicRateLimiter, adminRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
 
 // GET - ดึงรายการ banners (Public: แค่ active, Admin: ทั้งหมด)
 export async function GET(request: NextRequest) {
     try {
+        // ✅ Rate limiting for banners list (public endpoint - generous limit)
+        const clientIp = getClientIp(request);
+        const rateLimitResult = await publicRateLimiter.check(`banners-get:${clientIp}`);
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { success: false, error: "Too many requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: createRateLimitHeaders(100, 0, rateLimitResult.resetTime),
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
         const isAdmin = hasStaffAccess(session);
 
@@ -63,6 +78,20 @@ export async function GET(request: NextRequest) {
 // POST - สร้าง banner ใหม่ (ADMIN/OPERATOR only)
 export async function POST(request: NextRequest) {
     try {
+        // ✅ Rate limiting for banner creation (admin only - strict)
+        const clientIp = getClientIp(request);
+        const rateLimitResult = await adminRateLimiter.check(`banners-post:${clientIp}`);
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { success: false, error: "Too many requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         if (!hasStaffAccess(session)) {

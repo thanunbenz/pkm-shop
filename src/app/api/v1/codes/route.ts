@@ -7,9 +7,24 @@ import { codeCreateSchema } from "@/lib/validations/code";
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { formatZodIssues } from "@/types/validation";
+import { adminRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
     try {
+        // ✅ Rate limiting for admin code creation
+        const clientIp = getClientIp(request);
+        const rateLimitResult = await adminRateLimiter.check(`codes-post:${clientIp}`);
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { success: false, error: "Too many requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         // ✅ Allow OPERATOR and ADMIN

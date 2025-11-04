@@ -10,10 +10,25 @@ import { hasStaffAccess } from "@/lib/utils/auth-helpers";
 import { sendOrderConfirmation } from "@/lib/email";
 import { formatZodIssues } from "@/types/validation";
 import { Prisma } from "@prisma/client";
+import { writeRateLimiter, publicRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
 
 // POST - Create purchase from cart (Checkout)
 export async function POST(request: NextRequest) {
   try {
+    // ✅ Rate limiting for checkout (strict to prevent abuse)
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await writeRateLimiter.check(`purchase:${clientIp}`);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many checkout attempts. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(20, 0, rateLimitResult.resetTime),
+        }
+      );
+    }
+
     const session = await getServerSession(authOptions);
 
     // ✅ Require authentication
@@ -201,6 +216,20 @@ export async function POST(request: NextRequest) {
 // GET - Get purchases (User: own purchases, Admin: all purchases)
 export async function GET(request: NextRequest) {
   try {
+    // ✅ Rate limiting for reading purchases
+    const clientIp = getClientIp(request);
+    const rateLimitResult = await publicRateLimiter.check(`purchases-get:${clientIp}`);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(100, 0, rateLimitResult.resetTime),
+        }
+      );
+    }
+
     const session = await getServerSession(authOptions);
 
     // ✅ Require authentication

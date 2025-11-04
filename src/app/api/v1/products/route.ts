@@ -7,6 +7,7 @@ import { UPLOAD_CONFIG } from "@/config/constants";
 import logger from "@/lib/logger";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
+import { adminRateLimiter, getClientIp, createRateLimitHeaders } from "@/lib/rateLimit";
 
 // Try to import Zod schemas
 let productQuerySchema: z.ZodSchema | null = null;
@@ -29,6 +30,20 @@ export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
     try {
+        // ✅ Rate limiting for product list (admin only endpoint)
+        const clientIp = getClientIp(request);
+        const rateLimitResult = await adminRateLimiter.check(`products-get:${clientIp}`);
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                { success: false, error: "Too many requests. Please try again later." },
+                {
+                    status: 429,
+                    headers: createRateLimitHeaders(30, 0, rateLimitResult.resetTime),
+                }
+            );
+        }
+
         const session = await getServerSession(authOptions);
 
         // ✅ Allow OPERATOR and ADMIN
