@@ -195,12 +195,28 @@ model Banner {
 }
 
 model SiteSettings {
-  id              Int      @id @default(autoincrement())
-  welcomeTitle    String   @default("Welcome to PKM Shop")
-  welcomeSubtitle String?  @db.Text
-  showWelcome     Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                      Int      @id @default(autoincrement())
+  // Welcome Section
+  welcomeTitle            String   @default("Welcome to PKM Shop")
+  welcomeSubtitle         String?  @db.Text
+  showWelcome             Boolean  @default(true)
+
+  // Email Configuration (Issue #57)
+  supportEmail            String?  // Support email address
+  enableEmailNotifications Boolean @default(true) // Toggle for email notifications
+
+  // SEO & Branding (Issue #58 - Future)
+  shopName                String?  // Shop name
+  seoTitle                String?  // SEO page title
+  seoDescription          String?  @db.Text // SEO meta description
+  seoKeywords             String?  @db.Text // SEO keywords
+  logoUrl                 String?  @db.Text // Logo image URL
+  faviconUrl              String?  @db.Text // Favicon URL
+  primaryColor            String?  // Primary brand color (hex)
+  disclaimer              String?  @db.Text // Legal disclaimer text
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model Cart {
