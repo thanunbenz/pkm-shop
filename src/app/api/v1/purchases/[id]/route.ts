@@ -7,6 +7,7 @@ import { purchaseStatusUpdateSchema, paymentStatusUpdateSchema } from "@/lib/val
 import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { parseIntSafe } from "@/lib/utils/parse";
+import { sendCodeDelivery } from "@/lib/email";
 
 // GET - Get purchase details
 export async function GET(
@@ -163,6 +164,23 @@ export async function PATCH(
           product: {
             select: {
               name: true,
+              image: true,
+            },
+          },
+          user: {
+            select: {
+              email: true,
+              fname: true,
+              lname: true,
+            },
+          },
+          purchaseCodes: {
+            include: {
+              code: {
+                select: {
+                  code: true,
+                },
+              },
             },
           },
         },
@@ -184,6 +202,41 @@ export async function PATCH(
         newStatus: validatedData.status,
         updatedBy: session?.user?.email,
       });
+
+      // ✅ Send code delivery email when status becomes COMPLETED
+      if (
+        validatedData.status === "COMPLETED" &&
+        purchase.status !== "COMPLETED" &&
+        updatedData.user.email
+      ) {
+        // Extract codes from purchaseCodes
+        const codes = updatedData.purchaseCodes.map((pc) => pc.code.code);
+
+        // Send email asynchronously (don't wait for it)
+        sendCodeDelivery({
+          to: updatedData.user.email,
+          orderId: purchaseId,
+          customerName: `${updatedData.user.fname} ${updatedData.user.lname}`.trim() || "ลูกค้า",
+          productName: updatedData.product.name,
+          productImage: updatedData.product.image || "",
+          codes,
+          quantity: updatedData.quantity,
+          totalAmount: updatedData.totalAmount,
+        }).catch((error) => {
+          // Log email error but don't fail the status update
+          logger.error("Failed to send code delivery email", {
+            purchaseId,
+            email: updatedData.user.email,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        });
+
+        logger.info("Code delivery email queued", {
+          purchaseId,
+          email: updatedData.user.email,
+          codesCount: codes.length,
+        });
+      }
     } else {
       // Update payment status
       if (!purchase.payment) {
@@ -221,6 +274,65 @@ export async function PATCH(
           where: { id: purchaseId },
           data: { status: "COMPLETED" },
         });
+
+        // ✅ Send code delivery email when payment success auto-completes the purchase
+        const purchaseWithDetails = await prisma.purchase.findUnique({
+          where: { id: purchaseId },
+          include: {
+            product: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+            user: {
+              select: {
+                email: true,
+                fname: true,
+                lname: true,
+              },
+            },
+            purchaseCodes: {
+              include: {
+                code: {
+                  select: {
+                    code: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (purchaseWithDetails?.user.email) {
+          const codes = purchaseWithDetails.purchaseCodes.map((pc) => pc.code.code);
+
+          // Send email asynchronously (don't wait for it)
+          sendCodeDelivery({
+            to: purchaseWithDetails.user.email,
+            orderId: purchaseId,
+            customerName:
+              `${purchaseWithDetails.user.fname} ${purchaseWithDetails.user.lname}`.trim() ||
+              "ลูกค้า",
+            productName: purchaseWithDetails.product.name,
+            productImage: purchaseWithDetails.product.image || "",
+            codes,
+            quantity: purchaseWithDetails.quantity,
+            totalAmount: purchaseWithDetails.totalAmount,
+          }).catch((error) => {
+            logger.error("Failed to send code delivery email (payment success)", {
+              purchaseId,
+              email: purchaseWithDetails.user.email,
+              error: error instanceof Error ? error.message : "Unknown error",
+            });
+          });
+
+          logger.info("Code delivery email queued (payment success)", {
+            purchaseId,
+            email: purchaseWithDetails.user.email,
+            codesCount: codes.length,
+          });
+        }
       }
 
       logger.info("Payment status updated", {

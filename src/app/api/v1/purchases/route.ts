@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import logger from "@/lib/logger";
 import { parseIntSafe } from "@/lib/utils/parse";
 import { hasStaffAccess } from "@/lib/utils/auth-helpers";
+import { sendOrderConfirmation } from "@/lib/email";
 
 // POST - Create purchase from cart (Checkout)
 export async function POST(request: NextRequest) {
@@ -126,6 +127,42 @@ export async function POST(request: NextRequest) {
       purchaseIds: result.map((p) => p.id),
       itemCount: validatedData.items.length,
     });
+
+    // ✅ Send order confirmation email (async, non-blocking)
+    // Send email for the first purchase (main order)
+    if (result.length > 0 && session.user.email) {
+      const firstPurchase = result[0];
+
+      // Fetch product details for email
+      const product = await prisma.product.findUnique({
+        where: { id: firstPurchase.productId },
+        select: {
+          name: true,
+          image: true,
+        },
+      });
+
+      if (product) {
+        // Send email asynchronously (don't wait for it)
+        sendOrderConfirmation({
+          to: session.user.email,
+          orderId: firstPurchase.id,
+          customerName: session.user.name || "ลูกค้า",
+          productName: product.name,
+          productImage: product.image || "",
+          quantity: firstPurchase.quantity,
+          totalAmount: firstPurchase.totalAmount,
+          orderDate: firstPurchase.createdAt,
+        }).catch((error) => {
+          // Log email error but don't fail the purchase
+          logger.error("Failed to send order confirmation email", {
+            purchaseId: firstPurchase.id,
+            email: session.user.email,
+            error: error instanceof Error ? error.message : "Unknown error",
+          });
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
