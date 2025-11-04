@@ -3,6 +3,8 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { codeCreateSchema } from "@/lib/validations/code";
+import { ZodError } from "zod";
 
 export async function POST(request: NextRequest) {
     try {
@@ -17,19 +19,13 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { code, productId, isUsed } = body;
 
-        // Validation
-        if (!code || !productId) {
-            return NextResponse.json(
-                { success: false, error: "Code and productId are required" },
-                { status: 400 }
-            );
-        }
+        // Validate input with Zod
+        const validatedData = codeCreateSchema.parse(body);
 
         // Check if code already exists
         const existingCode = await prisma.code.findFirst({
-            where: { code: code.trim() }
+            where: { code: validatedData.code.trim() }
         });
 
         if (existingCode) {
@@ -42,9 +38,9 @@ export async function POST(request: NextRequest) {
         // Create code
         const newCode = await prisma.code.create({
             data: {
-                code: code.trim(),
-                productId: parseInt(productId),
-                isUsed: isUsed || false,
+                code: validatedData.code.trim(),
+                productId: validatedData.productId,
+                isUsed: validatedData.isUsed,
             },
         });
 
@@ -53,6 +49,20 @@ export async function POST(request: NextRequest) {
             { status: 201 }
         );
     } catch (error) {
+        if (error instanceof ZodError) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "ข้อมูลไม่ถูกต้อง",
+                    details: error.issues.map((e: any) => ({
+                        field: e.path.join('.'),
+                        message: e.message
+                    }))
+                },
+                { status: 400 }
+            );
+        }
+
         console.error("Error creating code:", error);
         return NextResponse.json(
             { success: false, error: "Internal Server Error" },

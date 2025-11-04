@@ -23,9 +23,11 @@
 ### 🔐 [02 - Security](./02-security/)
 **เอกสารด้านความปลอดภัย**
 
-- [SECURITY_FIXES_SUMMARY.md](./02-security/SECURITY_FIXES_SUMMARY.md) - สรุปการแก้ไข
-- [SECURITY_FIX_REPORT.md](./02-security/SECURITY_FIX_REPORT.md) - รายงานเต็ม (18KB)
-- [FIXES_OVERVIEW.txt](./02-security/FIXES_OVERVIEW.txt) - Visual overview
+- [IMPLEMENTATION_SUMMARY.md](./02-security/IMPLEMENTATION_SUMMARY.md) - 📋 สรุปการพัฒนา 2025
+- [SECURITY_IMPROVEMENTS.md](./02-security/SECURITY_IMPROVEMENTS.md) - 📖 คู่มือความปลอดภัยเต็ม (EN)
+- [SECURITY_IMPROVEMENTS_TH.md](./02-security/SECURITY_IMPROVEMENTS_TH.md) - 📖 คู่มือความปลอดภัยเต็ม (TH)
+- [SECURITY_FIXES_SUMMARY.md](./02-security/SECURITY_FIXES_SUMMARY.md) - สรุปการแก้ไข (Legacy)
+- [SECURITY_FIX_REPORT.md](./02-security/SECURITY_FIX_REPORT.md) - รายงานเต็ม (Legacy)
 
 ### 💻 [03 - Development](./03-development/)
 **สำหรับนักพัฒนา**
@@ -44,6 +46,8 @@
 ### 📦 [Archive](./archive/)
 **เอกสารเก่าที่เก็บถาวร**
 
+- [HIGH_PRIORITY_FIXES_SUMMARY.md](./archive/HIGH_PRIORITY_FIXES_SUMMARY.md) - สรุปการแก้ไข 2024
+- [ID_TYPE_INCONSISTENCIES_REPORT.md](./archive/ID_TYPE_INCONSISTENCIES_REPORT.md) - รายงาน ID Types
 - เอกสารการแก้ไขในอดีต
 - Migration และ Refactor logs
 
@@ -62,9 +66,10 @@
 3. **Dev Guide:** [Development](./03-development/README.md)
 
 ### For Security Review
-1. **Summary:** [Security Summary](./02-security/SECURITY_FIXES_SUMMARY.md)
-2. **Full Report:** [Security Report](./02-security/SECURITY_FIX_REPORT.md)
-3. **Overview:** [Fixes Overview](./02-security/FIXES_OVERVIEW.txt)
+1. **Implementation 2025:** [Implementation Summary](./02-security/IMPLEMENTATION_SUMMARY.md) ⭐ NEW
+2. **Full Guide (EN):** [Security Improvements](./02-security/SECURITY_IMPROVEMENTS.md) ⭐ NEW
+3. **Full Guide (TH):** [คู่มือความปลอดภัย](./02-security/SECURITY_IMPROVEMENTS_TH.md) ⭐ NEW
+4. **Legacy:** [Old Security Fixes](./02-security/SECURITY_FIXES_SUMMARY.md)
 
 ---
 
@@ -200,11 +205,18 @@ If you can't find what you're looking for:
 
 ## 🔄 Documentation Updates
 
-**Last Updated:** 2025-10-28
-**Version:** 2.0.0 (Reorganized)
+**Last Updated:** 2025-01-01
+**Version:** 3.0.0 (Security Implementation 2025)
 **Status:** ✅ Complete & Organized
 
-### Recent Changes
+### Recent Changes (2025-01-01)
+- ✅ Added comprehensive security documentation
+- ✅ Created Implementation Summary
+- ✅ Added bilingual guides (EN/TH)
+- ✅ Moved legacy docs to archive
+- ✅ Updated all security references
+
+### Previous Changes (2024-10-28)
 - ✅ Reorganized into 4 main categories
 - ✅ Added README for each category
 - ✅ Created navigation structure

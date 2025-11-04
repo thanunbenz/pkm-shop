@@ -41,7 +41,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           return {
-            id: String(user.id),
+            id: user.id.toString(), // Convert number to string for NextAuth
             email: user.email,
             name: `${user.fname} ${user.lname}`,
             fname: user.fname,
@@ -68,7 +68,8 @@ export const authOptions: NextAuthOptions = {
       // Create refresh token when user signs in
       if (user?.id) {
         try {
-          await createRefreshToken(Number(user.id));
+          // Convert string ID back to number for database
+          await createRefreshToken(parseInt(user.id));
           return true;
         } catch (error) {
           console.error("Error creating refresh token:", error);
@@ -80,7 +81,7 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id; // Store as string
         token.email = user.email || "";
         token.fname = user.fname;
         token.lname = user.lname;
@@ -90,7 +91,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id; // Already string type
         session.user.email = token.email as string;
         session.user.fname = token.fname as string;
         session.user.lname = token.lname as string;

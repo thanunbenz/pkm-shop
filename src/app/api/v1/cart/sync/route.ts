@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import logger from "@/lib/logger";
 
 interface CartItem {
   productId: number;
@@ -10,10 +11,13 @@ interface CartItem {
 
 // POST - Sync local cart to server when user logs in
 export async function POST(request: NextRequest) {
+  let userId: number | undefined;
+
   try {
     const session = await getServerSession(authOptions);
     const body = await request.json();
-    const { userId, items } = body as { userId: number; items: CartItem[] };
+    const { userId: userIdFromBody, items } = body as { userId: number; items: CartItem[] };
+    userId = userIdFromBody;
 
     if (!userId || !Array.isArray(items)) {
       return NextResponse.json(
@@ -30,41 +34,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (session.user.id !== userId.toString()) {
+    // Convert session.user.id (string) to number for comparison
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userId) {
       return NextResponse.json(
         { error: "Unauthorized: You can only sync your own cart" },
         { status: 403 }
       );
     }
 
+    // Ensure userId is not undefined before proceeding
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const userIdNum = userId; // TypeScript now knows this is not undefined
+
     // Use transaction to prevent race conditions and ensure data consistency
     await prisma.$transaction(async (tx) => {
+      // Batch fetch all products and existing cart items to avoid N+1 queries
+      const productIds = items.map(item => item.productId);
+
+      const [products, existingCartItems] = await Promise.all([
+        tx.product.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: {
+                code: {
+                  where: { isUsed: false }
+                }
+              }
+            }
+          }
+        }),
+        tx.cart.findMany({
+          where: {
+            userId: userIdNum,
+            productId: { in: productIds }
+          }
+        })
+      ]);
+
+      // Create maps for O(1) lookup
+      const productMap = new Map(products.map(p => [p.id, p]));
+      const cartMap = new Map(existingCartItems.map(c => [c.productId, c]));
+
+      // Validate all items first
       for (const item of items) {
-        // Validate stock availability
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          include: {
-            code: {
-              where: { isUsed: false },
-            },
-          },
-        });
+        const product = productMap.get(item.productId);
 
         if (!product) {
           throw new Error(`ไม่พบสินค้า ID ${item.productId}`);
         }
 
-        const availableStock = product.code.length;
-
-        // Check existing cart item
-        const existingCartItem = await tx.cart.findUnique({
-          where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
-          },
-        });
+        const availableStock = product._count.code;
+        const existingCartItem = cartMap.get(item.productId);
 
         const newQuantity = existingCartItem
           ? existingCartItem.quantity + item.quantity
@@ -76,25 +106,34 @@ export async function POST(request: NextRequest) {
             `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
           );
         }
-
-        // Upsert cart item (atomic operation)
-        await tx.cart.upsert({
-          where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
-          },
-          create: {
-            userId,
-            productId: item.productId,
-            quantity: item.quantity,
-          },
-          update: {
-            quantity: newQuantity,
-          },
-        });
       }
+
+      // Batch upsert all cart items
+      await Promise.all(
+        items.map(item => {
+          const existingCartItem = cartMap.get(item.productId);
+          const newQuantity = existingCartItem
+            ? existingCartItem.quantity + item.quantity
+            : item.quantity;
+
+          return tx.cart.upsert({
+            where: {
+              userId_productId: {
+                userId: userIdNum,
+                productId: item.productId,
+              },
+            },
+            create: {
+              userId: userIdNum,
+              productId: item.productId,
+              quantity: item.quantity,
+            },
+            update: {
+              quantity: newQuantity,
+            },
+          });
+        })
+      );
     });
 
     return NextResponse.json({
@@ -102,8 +141,14 @@ export async function POST(request: NextRequest) {
       message: "Cart synced successfully",
     });
   } catch (error) {
-    console.error("Error syncing cart:", error);
+    // Log error details server-side
+    logger.error("Error syncing cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: userId,
+    });
 
+    // Return generic error to client (don't expose internal details)
     const errorMessage = error instanceof Error ? error.message : "Failed to sync cart";
 
     return NextResponse.json(

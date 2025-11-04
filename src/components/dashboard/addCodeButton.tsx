@@ -13,6 +13,12 @@ export default function AddCodeButton() {
         setIsModalOpen(!isModalOpen)
     }
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        // TODO: Implement code submission logic
+        console.log('Submitting code:', code)
+        handleToggleModal()
+    }
 
     return (
         <div>

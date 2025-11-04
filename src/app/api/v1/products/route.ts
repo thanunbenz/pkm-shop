@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/authOptions";
 import { hasStaffAccess, getUnauthorizedError } from "@/lib/utils/auth-helpers";
+import { UPLOAD_CONFIG } from "@/config/constants";
 
 // Try to import Zod schemas
 let productQuerySchema: any = null;
@@ -145,17 +146,23 @@ export async function POST(request: NextRequest) {
         const name = formData.get("name") as string;
         const description = formData.get("description") as string;
         const price = parseFloat(formData.get("price") as string);
-        const stock = parseInt(formData.get("stock") as string);
+        const discountprice = parseFloat(formData.get("discountprice") as string) || 0;
+        const issale = formData.get("issale") === "true";
+        const isrecommend = formData.get("isrecommend") === "true";
+        const categoryInput = formData.get("category") as string;
+        const category = (categoryInput === "PACK" || categoryInput === "BOX" || categoryInput === "PROMO")
+          ? categoryInput as "PACK" | "BOX" | "PROMO"
+          : "PACK";
         const image = formData.get("image") as File;
 
-        if (!name || !description || !price || !stock) {
+        if (!name || !description || !price) {
             return NextResponse.json(
                 { error: "Missing required fields" },
                 { status: 400 }
             );
         }
 
-        if (image && !UPLOAD_CONFIG.ALLOWED_FILE_TYPES.includes(image.type)) {
+        if (image && !UPLOAD_CONFIG.ALLOWED_FILE_TYPES.includes(image.type as any)) {
             return NextResponse.json(
                 { error: "Invalid file type" },
                 { status: 400 }
@@ -174,7 +181,10 @@ export async function POST(request: NextRequest) {
                 name,
                 description,
                 price,
-                stock,
+                discountprice,
+                issale,
+                isrecommend,
+                category,
                 image: image ? image.name : null,
             },
         });

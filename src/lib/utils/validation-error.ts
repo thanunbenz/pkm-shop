@@ -61,13 +61,13 @@ export function validateOrRespond<T>(
   if (!result.success) {
     return {
       success: false,
-      response: validationErrorResponse(result.error),
+      response: validationErrorResponse(result.error!),
     };
   }
 
   return {
     success: true,
-    data: result.data,
+    data: result.data!,
   };
 }
 

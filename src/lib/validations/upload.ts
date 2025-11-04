@@ -22,7 +22,7 @@ export const fileUploadSchema = z.object({
       `ขนาดไฟล์ต้องไม่เกิน ${UPLOAD_CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB`
     )
     .refine(
-      (file) => UPLOAD_CONFIG.ALLOWED_FILE_TYPES.includes(file.type),
+      (file) => (UPLOAD_CONFIG.ALLOWED_FILE_TYPES as readonly string[]).includes(file.type),
       `รองรับเฉพาะไฟล์ ${UPLOAD_CONFIG.ALLOWED_FILE_TYPES.join(", ")}`
     ),
 });
@@ -38,7 +38,7 @@ export const multipleFileUploadSchema = z.object({
           `ขนาดไฟล์ต้องไม่เกิน ${UPLOAD_CONFIG.MAX_FILE_SIZE / 1024 / 1024}MB`
         )
         .refine(
-          (file) => UPLOAD_CONFIG.ALLOWED_FILE_TYPES.includes(file.type),
+          (file) => (UPLOAD_CONFIG.ALLOWED_FILE_TYPES as readonly string[]).includes(file.type),
           `รองรับเฉพาะไฟล์ ${UPLOAD_CONFIG.ALLOWED_FILE_TYPES.join(", ")}`
         )
     )

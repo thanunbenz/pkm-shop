@@ -2,11 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
+import logger from "@/lib/logger";
+import { parseIntSafe, parsePositiveIntSafe } from "@/lib/utils/parse";
 
 // POST - Add item to cart
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to add items to cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId, quantity = 1 } = body;
 
@@ -18,103 +29,94 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
-    const quantityNum = parseInt(quantity);
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
+    const quantityNum = parsePositiveIntSafe(quantity, "Quantity");
 
-    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
       return NextResponse.json(
-        { error: "Invalid ID or quantity format" },
-        { status: 400 }
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
       );
     }
 
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
+    // ✅ Use transaction to prevent race conditions
+    const cartItem = await prisma.$transaction(async (tx) => {
+      // 1. Get product with available stock (within transaction)
+      const product = await tx.product.findUnique({
+        where: { id: productIdNum },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              code: {
+                where: { isUsed: false },
+              },
+            },
+          },
+        },
+      });
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const availableStock = product._count.code;
+
+      // 2. Get existing cart item (within transaction)
+      const existingCartItem = await tx.cart.findUnique({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
+        },
+      });
+
+      const newTotalQuantity = existingCartItem
+        ? existingCartItem.quantity + quantityNum
+        : quantityNum;
+
+      // 3. Validate stock before committing
+      if (newTotalQuantity > availableStock) {
+        throw new Error(
+          `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
         );
       }
-    }
 
-    if (quantityNum <= 0) {
-      return NextResponse.json(
-        { error: "Quantity must be greater than 0" },
-        { status: 400 }
-      );
-    }
-
-    // Check stock availability
-    const product = await prisma.product.findUnique({
-      where: { id: productIdNum },
-      include: {
-        code: {
-          where: { isUsed: false },
+      // 4. Upsert cart item (atomic within transaction)
+      return await tx.cart.upsert({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
         },
-      },
-    });
-
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      );
-    }
-
-    const availableStock = product.code.length;
-
-    const existingCartItem = await prisma.cart.findUnique({
-      where: {
-        userId_productId: {
+        create: {
           userId: userIdNum,
           productId: productIdNum,
+          quantity: quantityNum,
         },
-      },
-    });
-
-    const newTotalQuantity = existingCartItem
-      ? existingCartItem.quantity + quantityNum
-      : quantityNum;
-
-    // Validate stock
-    if (newTotalQuantity > availableStock) {
-      return NextResponse.json(
-        {
-          error: "สต็อกไม่เพียงพอ",
-          availableStock,
-          requestedQuantity: newTotalQuantity,
+        update: {
+          quantity: newTotalQuantity,
         },
-        { status: 400 }
-      );
-    }
-
-    // Use upsert for atomic operation
-    const cartItem = await prisma.cart.upsert({
-      where: {
-        userId_productId: {
-          userId: userIdNum,
-          productId: productIdNum,
-        },
-      },
-      create: {
-        userId: userIdNum,
-        productId: productIdNum,
-        quantity: quantityNum,
-      },
-      update: {
-        quantity: newTotalQuantity,
-      },
+      });
     });
 
     return NextResponse.json({ success: true, data: cartItem });
   } catch (error) {
-    console.error("Error adding to cart:", error);
+    logger.error("Error adding to cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to add to cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to add to cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }
@@ -123,6 +125,15 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to update cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId, quantity } = body;
 
@@ -134,29 +145,21 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
-    const quantityNum = parseInt(quantity);
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
+    const quantityNum = parseIntSafe(quantity, "Quantity");
 
-    if (isNaN(userIdNum) || isNaN(productIdNum) || isNaN(quantityNum)) {
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
       return NextResponse.json(
-        { error: "Invalid ID or quantity format" },
-        { status: 400 }
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
       );
     }
 
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Handle deletion
+    // Handle deletion (no transaction needed for delete)
     if (quantityNum <= 0) {
       await prisma.cart.delete({
         where: {
@@ -172,53 +175,59 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Validate stock
-    const product = await prisma.product.findUnique({
-      where: { id: productIdNum },
-      include: {
-        code: {
-          where: { isUsed: false },
+    // ✅ Use transaction to prevent race conditions
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Get product with available stock (within transaction)
+      const product = await tx.product.findUnique({
+        where: { id: productIdNum },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              code: {
+                where: { isUsed: false },
+              },
+            },
+          },
         },
-      },
-    });
+      });
 
-    if (!product) {
-      return NextResponse.json(
-        { error: "Product not found" },
-        { status: 404 }
-      );
-    }
+      if (!product) {
+        throw new Error("Product not found");
+      }
 
-    const availableStock = product.code.length;
+      const availableStock = product._count.code;
 
-    if (quantityNum > availableStock) {
-      return NextResponse.json(
-        {
-          error: "สต็อกไม่เพียงพอ",
-          availableStock,
-          requestedQuantity: quantityNum,
+      // 2. Validate stock before updating
+      if (quantityNum > availableStock) {
+        throw new Error(
+          `สต็อกไม่เพียงพอสำหรับสินค้า "${product.name}" (เหลือ ${availableStock} ชิ้น)`
+        );
+      }
+
+      // 3. Update quantity (atomic within transaction)
+      return await tx.cart.update({
+        where: {
+          userId_productId: {
+            userId: userIdNum,
+            productId: productIdNum,
+          },
         },
-        { status: 400 }
-      );
-    }
-
-    // Update quantity
-    const updated = await prisma.cart.update({
-      where: {
-        userId_productId: {
-          userId: userIdNum,
-          productId: productIdNum,
-        },
-      },
-      data: { quantity: quantityNum },
+        data: { quantity: quantityNum },
+      });
     });
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    console.error("Error updating cart:", error);
+    logger.error("Error updating cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to update cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to update cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }
@@ -227,6 +236,15 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to remove items from cart." },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
     const { userId, productId } = body;
 
@@ -238,25 +256,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Validate and parse integers
-    const userIdNum = parseInt(userId);
-    const productIdNum = parseInt(productId);
+    // Validate and parse integers safely
+    const userIdNum = parseIntSafe(userId, "User ID");
+    const productIdNum = parseIntSafe(productId, "Product ID");
 
-    if (isNaN(userIdNum) || isNaN(productIdNum)) {
+    // ✅ Authorization check: Verify userId matches session
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
       return NextResponse.json(
-        { error: "Invalid ID format" },
-        { status: 400 }
+        { error: "Unauthorized: You can only modify your own cart" },
+        { status: 403 }
       );
-    }
-
-    // Authorization check: Verify userId matches session
-    if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only modify your own cart" },
-          { status: 403 }
-        );
-      }
     }
 
     await prisma.cart.delete({
@@ -273,10 +283,14 @@ export async function DELETE(request: NextRequest) {
       message: "Item removed from cart",
     });
   } catch (error) {
-    console.error("Error removing from cart:", error);
+    logger.error("Error removing from cart:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
-      { error: "Failed to remove from cart" },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : "Failed to remove from cart" },
+      { status: error instanceof Error && error.message.includes("must be") ? 400 : 500 }
     );
   }
 }

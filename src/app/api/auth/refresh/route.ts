@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         lname: newRefreshToken.user.lname,
         role: newRefreshToken.user.role,
       },
-      process.env.NEXTAUTH_SECRET,
+      process.env.NEXTAUTH_SECRET!,
       {
         expiresIn: "24h", // Access token expires in 24 hours
       }

@@ -10,6 +10,15 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to view cart." },
+        { status: 401 }
+      );
+    }
+
     const { userId } = await params;
     const userIdNum = parseInt(userId);
 
@@ -20,28 +29,34 @@ export async function GET(
       );
     }
 
-    // Authorization check: User can only view their own cart
-    if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only view your own cart" },
-          { status: 403 }
-        );
-      }
+    // ✅ Authorization check: User can only view their own cart
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only view your own cart" },
+        { status: 403 }
+      );
     }
 
     const cartItems = await prisma.cart.findMany({
       where: { userId: userIdNum },
       include: {
         product: {
-          include: {
-            code: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            discountprice: true,
+            issale: true,
+            image: true,
+            _count: {
               select: {
-                id: true,
-                isUsed: true,
-              },
-            },
-          },
+                code: {
+                  where: { isUsed: false }
+                }
+              }
+            }
+          }
         },
       },
     });
@@ -55,7 +70,7 @@ export async function GET(
       issale: item.product.issale,
       image: item.product.image,
       quantity: item.quantity,
-      availableStock: item.product.code.filter((c) => !c.isUsed).length,
+      availableStock: item.product._count.code,
     }));
 
     return NextResponse.json({ success: true, items });
@@ -75,6 +90,15 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
+
+    // ✅ Require authentication
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { error: "Authentication required. Please login to clear cart." },
+        { status: 401 }
+      );
+    }
+
     const { userId } = await params;
     const userIdNum = parseInt(userId);
 
@@ -85,14 +109,13 @@ export async function DELETE(
       );
     }
 
-    // Authorization check: User can only clear their own cart
-    if (session && session.user && session.user.id) {
-      if (session.user.id !== userIdNum.toString()) {
-        return NextResponse.json(
-          { error: "Unauthorized: You can only clear your own cart" },
-          { status: 403 }
-        );
-      }
+    // ✅ Authorization check: User can only clear their own cart
+    const sessionUserId = parseInt(session.user.id);
+    if (sessionUserId !== userIdNum) {
+      return NextResponse.json(
+        { error: "Unauthorized: You can only clear your own cart" },
+        { status: 403 }
+      );
     }
 
     await prisma.cart.deleteMany({

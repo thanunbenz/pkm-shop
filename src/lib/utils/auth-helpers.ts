@@ -110,7 +110,8 @@ export function hasPermission(
   permission: keyof typeof PERMISSIONS
 ): boolean {
   if (!role) return false;
-  return PERMISSIONS[permission].includes(role as UserRole);
+  // Type assertion needed for readonly array
+  return (PERMISSIONS[permission] as readonly string[]).includes(role);
 }
 
 /**
