@@ -24,7 +24,9 @@
       "Bash(npx prisma generate:*)",
       "Bash(find:*)",
       "Bash(git mv:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(mysql:*)"
     ],
     "deny": [],
     "ask": []

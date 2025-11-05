@@ -96,6 +96,9 @@ model Product {
   @@index([issale])
   @@index([isrecommend])
   @@index([category])
+  // CHECK constraints added via migration (Issue #82)
+  // - price > 0
+  // - discountprice >= 0
 }
 
 model File {
@@ -104,6 +107,9 @@ model File {
   path      String   @db.Text
   size      Int
   createdAt DateTime @default(now())
+
+  // CHECK constraints added via migration (Issue #82)
+  // - size > 0
 }
 
 model Code {
@@ -137,6 +143,9 @@ model Purchase {
   @@index([productId])
   @@index([status])
   @@index([createdAt]) // Issue #75: For orderBy queries and date filtering
+  // CHECK constraints added via migration (Issue #82)
+  // - quantity > 0
+  // - totalAmount > 0
 }
 
 model PurchaseCode {
@@ -195,6 +204,8 @@ model Banner {
   updatedAt   DateTime @updatedAt
 
   @@index([isActive, order])
+  // CHECK constraints added via migration (Issue #82)
+  // - order >= 0
 }
 
 model SiteSettings {
@@ -235,6 +246,8 @@ model Cart {
   @@unique([userId, productId])
   @@index([userId])
   @@index([productId])
+  // CHECK constraints added via migration (Issue #82)
+  // - quantity > 0
 }
 
 model AuditLog {

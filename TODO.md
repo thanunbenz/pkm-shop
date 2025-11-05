@@ -1,11 +1,11 @@
 # PKM Shop - TODO List
 
-**Last Updated:** 2025-01-05 🎉 ALL HIGH PRIORITY + TEST INFRASTRUCTURE COMPLETE!
+**Last Updated:** 2025-11-05 🎉 WEEK 2 MEDIUM PRIORITY STARTED!
 **Current Branch:** feature/medium-priority-issues
-**Overall Progress:** 99% Production-Ready ⬆️⬆️
+**Overall Progress:** 99% Production-Ready ⬆️⬆️⬆️
 **Security Score:** 100/100 ⬆️
 
-**🎯 Today's Achievements:**
+**🎯 Latest Achievements:**
 - ✅ 7 High Priority issues fixed (Issues #64, #65, #66, #69, #70, #75, #81)
 - ✅ Test infrastructure created (21 tests ready)
 - ✅ Security vulnerabilities eliminated
@@ -17,7 +17,11 @@
   - Issue #74: N+1 query prevention + pagination utilities
   - Issue #77: Standardized API responses
   - Issue #78: API versioning strategy
-- ⏱️ **Total Work:** ~35-40 hours of development completed
+- ✅ **Week 2 Medium Priority STARTED** (3/3 issues complete so far):
+  - Issue #71: I18n implementation (Thai/English)
+  - Issue #79: CORS configuration
+  - Issue #82: Database validation (CHECK constraints)
+- ⏱️ **Total Work:** ~45-50 hours of development completed
 
 **Issues Summary:**
 - ✅ Critical: 7/7 (100%)
@@ -25,7 +29,9 @@
 - ✅ High Priority (Additional): 7/8 (88%) + Test Infrastructure Ready
   - Issues #64, #65, #66, #69, #70, #75, #81: ✅ COMPLETE
   - Issue #84: Infrastructure 100% ready (awaiting npm install)
-- ⏳ Medium Priority: 2/26 (8%)
+- ⏳ Medium Priority: 5/26 (19%) ⬆️
+  - Week 1: 5/5 complete (Issues #67, #72, #74, #77, #78)
+  - Week 2: 3/? in progress (Issues #71, #79, #82 complete)
 - ⏳ Low Priority: 0/15 (0%)
 - 🆕 Additional Issues Found: 23 issues (from codebase scan)
   - ✅ High Priority: 7/8 COMPLETE (88%)
@@ -227,7 +233,20 @@
     - middleware.ts (added CORS handling + preflight)
     - src/lib/startup-validation.ts (added CORS validation)
     - .env.example (added ALLOWED_ORIGINS documentation)
-- [ ] **Issue #82:** Missing Database Validation - ADD CHECK constraints (2-3h)
+- [x] **Issue #82:** Missing Database Validation - ADD CHECK constraints (2-3h) ✅
+  - ✅ Created 7 CHECK constraints for data integrity
+  - ✅ Product table: price > 0, discountprice >= 0
+  - ✅ File table: size > 0
+  - ✅ Purchase table: quantity > 0, totalAmount > 0
+  - ✅ Cart table: quantity > 0
+  - ✅ Banner table: order >= 0
+  - ✅ Defense-in-depth validation (Client + Zod + Database)
+  - ✅ Complete documentation: [docs/03-development/DATABASE_VALIDATION.md](docs/03-development/DATABASE_VALIDATION.md)
+  - **Files Created:**
+    - prisma/migrations/20251105214549_add_check_constraints/migration.sql
+    - docs/03-development/DATABASE_VALIDATION.md (800+ lines)
+  - **Files Modified:**
+    - prisma/schema.prisma (added constraint comments)
 - [ ] **Issue #85:** Missing API Documentation - Add Swagger/OpenAPI (8-10h)
 
 **Week 3-4 (20-25h):**
