@@ -136,6 +136,7 @@ model Purchase {
   @@index([userId])
   @@index([productId])
   @@index([status])
+  @@index([createdAt]) // Issue #75: For orderBy queries and date filtering
 }
 
 model PurchaseCode {
@@ -164,6 +165,8 @@ model Payment {
   purchase      Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 
   @@index([paymentStatus])
+  @@index([transactionId]) // Issue #75: For payment lookup by transaction ID
+  @@index([createdAt]) // Issue #75: For payment history and date filtering
 }
 
 model RefreshToken {

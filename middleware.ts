@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import rateLimit from 'next-rate-limit';
 
 // Create rate limiter instance
@@ -25,10 +26,23 @@ const rateLimits: Record<string, number> = {
   '/api/v1': 30,             // General API: 30 requests per minute
 };
 
+/**
+ * Unified Middleware
+ *
+ * Handles:
+ * 1. Rate limiting for API routes
+ * 2. Authentication checks
+ * 3. Authorization (role-based access control)
+ *
+ * Related Issues:
+ * - Issue #64: Merge duplicate middleware files
+ */
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Apply rate limiting only to API routes
+  // ============================================================
+  // 1. RATE LIMITING (for API routes)
+  // ============================================================
   if (pathname.startsWith('/api')) {
     const ip = getClientIp(request);
 
@@ -77,11 +91,75 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // ============================================================
+  // 2. AUTHENTICATION & AUTHORIZATION (for protected routes)
+  // ============================================================
+
+  // Get authentication token
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+
+  // Redirect invalid URL patterns
+  if (pathname.startsWith("/%")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // If user is logged in
+  if (token) {
+    // Redirect authenticated users away from auth pages
+    if (
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/register")
+    ) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    // Check STAFF role (OPERATOR or ADMIN) for dashboard access
+    if (pathname.startsWith("/dashboard")) {
+      const isStaff = token.role === "OPERATOR" || token.role === "ADMIN";
+
+      if (!isStaff) {
+        // Regular users cannot access dashboard
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+
+      // ADMIN-only routes (settings)
+      const adminOnlyRoutes = [
+        "/dashboard/settings",
+        "/dashboard/roles",
+        "/dashboard/system",
+      ];
+
+      const isAdminRoute = adminOnlyRoutes.some(route =>
+        pathname.startsWith(route)
+      );
+
+      if (isAdminRoute && token.role !== "ADMIN") {
+        // OPERATOR cannot access ADMIN-only routes
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
+  } else {
+    // If user is NOT logged in and trying to access protected routes
+    if (pathname.startsWith("/dashboard")) {
+      const url = new URL("/login", request.url);
+      url.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    // API routes (for rate limiting)
     '/api/:path*',
+    // Auth pages (redirect if logged in)
+    '/login',
+    '/register',
+    // Protected routes (require auth)
+    '/dashboard/:path*',
+    // Invalid URL patterns
+    '/%:path*',
   ],
 };
