@@ -56,7 +56,12 @@
 - [x] **Issue #69:** Type 'any' Usage in Profile Page - Fix type safety (1h) ✅
 - [x] **Issue #70:** Missing Input Sanitization in Profile Update - Add trim/lowercase (1-2h) ✅
 - [x] **Issue #81:** Missing Transaction for Complex Operations - Add Prisma transactions (3-4h) ✅
-- [ ] **Issue #84:** Zero Test Coverage - Add basic tests (auth + checkout) (4-5h) → **Future**
+- [ ] **Issue #84:** Zero Test Coverage - Add basic tests (auth + checkout) (4-5h) → **READY** 📝
+  - ✅ Test infrastructure created (config + setup + helpers)
+  - ✅ 18 validation tests written (ready to run)
+  - ✅ Comprehensive setup guide created
+  - ⏳ Need to run: `npm install --save-dev vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom jsdom`
+  - See: [TESTING_SETUP_GUIDE.md](docs/03-development/TESTING_SETUP_GUIDE.md)
 - [x] **Issue #75:** Missing Database Indexes - Add performance indexes (2-3h) ✅
 
 #### 🟢 Medium Priority - Quality Improvements (14 issues, ~50-65 hours)
