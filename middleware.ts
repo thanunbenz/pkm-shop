@@ -34,15 +34,29 @@ const rateLimits: Record<string, number> = {
  * 1. Rate limiting for API routes
  * 2. Authentication checks
  * 3. Authorization (role-based access control)
+ * 4. API versioning headers
  *
  * Related Issues:
  * - Issue #64: Merge duplicate middleware files
+ * - Issue #78: API Versioning Strategy
  */
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // ============================================================
-  // 1. RATE LIMITING (for API routes)
+  // 1. API VERSIONING HEADERS
+  // ============================================================
+  let response = NextResponse.next();
+
+  // Add API version headers for /api/v1 routes
+  if (pathname.startsWith('/api/v1')) {
+    response.headers.set('X-API-Version', 'v1');
+    response.headers.set('X-API-Deprecated', 'false');
+    // response.headers.set('X-API-Sunset-Date', ''); // Add when deprecating
+  }
+
+  // ============================================================
+  // 2. RATE LIMITING (for API routes)
   // ============================================================
   if (pathname.startsWith('/api')) {
     const ip = getClientIp(request);
@@ -93,7 +107,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
-  // 2. AUTHENTICATION & AUTHORIZATION (for protected routes)
+  // 3. AUTHENTICATION & AUTHORIZATION (for protected routes)
   // ============================================================
 
   // Get authentication token
@@ -148,7 +162,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
