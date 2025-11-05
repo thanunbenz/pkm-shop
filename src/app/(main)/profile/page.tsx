@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import logger from "@/lib/logger";
 
 interface UserProfile {
   id: number;
@@ -69,7 +70,10 @@ export default function ProfilePage() {
         toast.error(data.error || "ไม่สามารถโหลดข้อมูลได้");
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      logger.error("Failed to fetch user profile", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: session?.user?.id,
+      });
       toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูล");
     } finally {
       setLoading(false);
@@ -159,7 +163,10 @@ export default function ProfilePage() {
         toast.error(data.error || "ไม่สามารถอัพเดทข้อมูลได้");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
+      logger.error("Failed to update user profile", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        userId: session?.user?.id,
+      });
       toast.error("เกิดข้อผิดพลาดในการอัพเดทข้อมูล");
     } finally {
       setUpdating(false);

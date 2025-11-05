@@ -23,7 +23,8 @@
       "Bash(git add:*)",
       "Bash(npx prisma generate:*)",
       "Bash(find:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -7,7 +7,10 @@
  * Related Issues:
  * - Issue #65: Hardcoded JWT Secret Fallback
  * - Issue #66: Email API Key Not Validated at Startup
+ * - Issue #67: Replace console.log with logger
  */
+
+import logger from './logger';
 
 interface EnvValidationResult {
   isValid: boolean;
@@ -53,7 +56,7 @@ export function validateRequiredEnvVars(): EnvValidationResult {
     if (!process.env[key]) {
       // In development, RESEND_API_KEY is optional (will use console logging)
       if (key === 'RESEND_API_KEY' && process.env.NODE_ENV === 'development') {
-        console.warn(`⚠️  Warning: ${description} (optional in development)`);
+        logger.warn(`${description} (optional in development)`, { envVar: key });
         continue;
       }
 
@@ -65,7 +68,7 @@ export function validateRequiredEnvVars(): EnvValidationResult {
   // Check optional variables (warnings only)
   for (const [key, description] of Object.entries(OPTIONAL_ENV_VARS)) {
     if (!process.env[key]) {
-      console.warn(`⚠️  Warning: ${description}`);
+      logger.warn(description, { envVar: key, optional: true });
     }
   }
 
@@ -94,17 +97,19 @@ export function validateRequiredEnvVars(): EnvValidationResult {
 export function validateEnvOnStartup() {
   try {
     validateRequiredEnvVars();
-    console.log('✅ Environment variables validation passed');
+    logger.info('Environment variables validation passed');
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Unknown validation error');
+    logger.error('Environment validation failed', {
+      error: error instanceof Error ? error.message : 'Unknown validation error',
+    });
 
     // In production, exit the process
     if (process.env.NODE_ENV === 'production') {
-      console.error('\n🚫 Cannot start application without required environment variables');
+      logger.error('Cannot start application without required environment variables');
       process.exit(1);
     } else {
       // In development, just warn but allow to continue
-      console.warn('\n⚠️  Development mode: Continuing despite missing environment variables');
+      logger.warn('Development mode: Continuing despite missing environment variables');
     }
   }
 }
@@ -120,13 +125,17 @@ export function validateEmailConfig(): boolean {
         'Please set it in your environment variables.'
       );
     }
-    console.warn('⚠️  RESEND_API_KEY not set - emails will not be sent');
+    logger.warn('RESEND_API_KEY not set - emails will not be sent', {
+      nodeEnv: process.env.NODE_ENV,
+    });
     return false;
   }
 
   // Validate API key format (Resend keys start with "re_")
   if (!process.env.RESEND_API_KEY.startsWith('re_')) {
-    console.warn('⚠️  RESEND_API_KEY format looks invalid (should start with "re_")');
+    logger.warn('RESEND_API_KEY format looks invalid (should start with "re_")', {
+      keyPrefix: process.env.RESEND_API_KEY.substring(0, 3),
+    });
     return false;
   }
 
