@@ -24,12 +24,21 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Check if user was redirected after password change
+  // Check if user was redirected after password change or reset
   useEffect(() => {
     const passwordChanged = searchParams.get("passwordChanged");
+    const passwordReset = searchParams.get("passwordReset");
+
     if (passwordChanged === "true") {
       showToastInfo(
         "รหัสผ่านของคุณถูกเปลี่ยนแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่",
+        { autoClose: 5000 }
+      );
+    }
+
+    if (passwordReset === "true") {
+      showToastInfo(
+        "รีเซ็ตรหัสผ่านสำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่",
         { autoClose: 5000 }
       );
     }

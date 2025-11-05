@@ -209,3 +209,34 @@ export async function sendPasswordChangedEmail({
     }),
   });
 }
+
+/**
+ * Send password reset email with reset link
+ * @param to - User email
+ * @param customerName - User's first name
+ * @param resetUrl - Password reset URL with token
+ * @param expiresIn - Token expiration time (e.g., "1 ชั่วโมง")
+ */
+export async function sendPasswordResetEmail({
+  to,
+  customerName,
+  resetUrl,
+  expiresIn,
+}: {
+  to: string;
+  customerName: string;
+  resetUrl: string;
+  expiresIn: string;
+}) {
+  const { PasswordReset } = await import("@/emails/PasswordReset");
+
+  return sendEmail({
+    to,
+    subject: `🔐 รีเซ็ตรหัสผ่านของคุณ - PKM Shop`,
+    react: PasswordReset({
+      customerName,
+      resetUrl,
+      expiresIn,
+    }),
+  });
+}
