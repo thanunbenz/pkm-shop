@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import logger from "@/lib/logger";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 
 interface UserProfile {
   id: number;
@@ -375,6 +376,11 @@ export default function ProfilePage() {
           </form>
         </div>
 
+        {/* Change Password Section */}
+        <div className="mt-6">
+          <ChangePasswordForm />
+        </div>
+
         {/* Additional Info */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="text-sm font-medium text-blue-900 mb-2">
@@ -383,9 +389,8 @@ export default function ProfilePage() {
           <ul className="text-sm text-blue-800 space-y-1">
             <li>• การเปลี่ยนอีเมลต้องการรหัสผ่านยืนยันเพื่อความปลอดภัย</li>
             <li>• ระบบจะบันทึกประวัติการแก้ไขข้อมูลทุกครั้ง</li>
-            <li>
-              • หากต้องการเปลี่ยนรหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ (เร็วๆ นี้)
-            </li>
+            <li>• คุณสามารถเปลี่ยนรหัสผ่านได้จากส่วนด้านบน</li>
+            <li>• ระบบจะส่งอีเมลแจ้งเตือนเมื่อมีการเปลี่ยนรหัสผ่าน (เร็วๆ นี้)</li>
           </ul>
         </div>
       </div>
