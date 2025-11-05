@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import rateLimit from 'next-rate-limit';
 import { RATE_LIMITS, RATE_LIMITER_CONFIG } from '@/config/app-constants';
+import { getCorsHeaders, getPreflightCorsHeaders } from '@/config/cors';
 
 // Create rate limiter instance
 const limiter = rateLimit({
@@ -31,23 +32,46 @@ const rateLimits: Record<string, number> = {
  * Unified Middleware
  *
  * Handles:
- * 1. Rate limiting for API routes
- * 2. Authentication checks
- * 3. Authorization (role-based access control)
- * 4. API versioning headers
+ * 1. CORS (Cross-Origin Resource Sharing)
+ * 2. Rate limiting for API routes
+ * 3. Authentication checks
+ * 4. Authorization (role-based access control)
+ * 5. API versioning headers
  *
  * Related Issues:
  * - Issue #64: Merge duplicate middleware files
  * - Issue #78: API Versioning Strategy
+ * - Issue #79: CORS Configuration
  */
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const origin = request.headers.get('origin');
 
   // ============================================================
-  // 1. API VERSIONING HEADERS
+  // 1. CORS HEADERS (for API routes)
   // ============================================================
   let response = NextResponse.next();
 
+  // Handle preflight OPTIONS requests for CORS
+  if (request.method === 'OPTIONS' && pathname.startsWith('/api')) {
+    const preflightHeaders = getPreflightCorsHeaders(origin);
+    return new NextResponse(null, {
+      status: 204,
+      headers: preflightHeaders,
+    });
+  }
+
+  // Add CORS headers to API responses
+  if (pathname.startsWith('/api')) {
+    const corsHeaders = getCorsHeaders(origin);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+  }
+
+  // ============================================================
+  // 2. API VERSIONING HEADERS
+  // ============================================================
   // Add API version headers for /api/v1 routes
   if (pathname.startsWith('/api/v1')) {
     response.headers.set('X-API-Version', 'v1');
@@ -56,7 +80,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
-  // 2. RATE LIMITING (for API routes)
+  // 3. RATE LIMITING (for API routes)
   // ============================================================
   if (pathname.startsWith('/api')) {
     const ip = getClientIp(request);
@@ -75,6 +99,7 @@ export async function middleware(request: NextRequest) {
 
       const remaining = headers.get('X-RateLimit-Remaining');
       if (remaining && parseInt(remaining) < 0) {
+        const corsHeaders = getCorsHeaders(origin);
         return new NextResponse(
           JSON.stringify({
             success: false,
@@ -85,11 +110,13 @@ export async function middleware(request: NextRequest) {
             headers: {
               'Content-Type': 'application/json',
               'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
+              ...corsHeaders,
             },
           }
         );
       }
     } catch {
+      const corsHeaders = getCorsHeaders(origin);
       return new NextResponse(
         JSON.stringify({
           success: false,
@@ -100,6 +127,7 @@ export async function middleware(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
             'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
+            ...corsHeaders,
           },
         }
       );
@@ -107,7 +135,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
-  // 3. AUTHENTICATION & AUTHORIZATION (for protected routes)
+  // 4. AUTHENTICATION & AUTHORIZATION (for protected routes)
   // ============================================================
 
   // Get authentication token

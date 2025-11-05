@@ -8,9 +8,11 @@
  * - Issue #65: Hardcoded JWT Secret Fallback
  * - Issue #66: Email API Key Not Validated at Startup
  * - Issue #67: Replace console.log with logger
+ * - Issue #79: CORS Configuration
  */
 
 import logger from './logger';
+import { validateCorsConfig } from '@/config/cors';
 
 interface EnvValidationResult {
   isValid: boolean;
@@ -98,6 +100,9 @@ export function validateEnvOnStartup() {
   try {
     validateRequiredEnvVars();
     logger.info('Environment variables validation passed');
+
+    // Validate CORS configuration (Issue #79)
+    validateCorsConfig();
   } catch (error) {
     logger.error('Environment validation failed', {
       error: error instanceof Error ? error.message : 'Unknown validation error',
