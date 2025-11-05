@@ -324,10 +324,22 @@
     - SWAGGER_SETUP.md (installation guide)
   - **Note:** Requires `npm install swagger-ui-react` to view UI
 
-**Week 3 (Remaining Medium Priority - 20-25h):**
+**Week 3 (Infrastructure + Developer Experience - 8-10h):** ⬅️ **NEXT**
 - [ ] **Issue #76:** In-Memory Rate Limiter - Migrate to Redis (4-5h)
-- [ ] **Issue #86:** Missing Developer Setup Guide - Create docs (4-5h)
-- [ ] **Additional Medium Priority issues** - TBD
+  - Enable horizontal scaling with Redis-based rate limiting
+  - Implement sliding window algorithm
+  - Add graceful fallback to in-memory
+  - Support for Upstash (serverless) or traditional Redis
+  - Complete testing across multiple instances
+- [ ] **Issue #86:** Missing Developer Setup Guide - Create comprehensive docs (4-5h)
+  - Quick start guide (< 5 minutes)
+  - Complete developer setup guide
+  - Troubleshooting guide for common issues
+  - Architecture & tech stack documentation
+  - Database setup guide
+  - Deployment guide
+
+**📋 Week 3 Implementation Plan:** [docs/03-development/WEEK3_PLAN.md](docs/03-development/WEEK3_PLAN.md)
 
 **Week 4 (Test Suite Completion):**
 - [ ] **Issue #84 (Full):** Full Test Suite - Unit + Integration + E2E (10-15h)
