@@ -2,11 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ToastContainer } from "react-toastify";
-import { showToastSuccess, showToastError } from "@/lib/utils/toast";
+import { showToastSuccess, showToastError, showToastInfo } from "@/lib/utils/toast";
 import "react-toastify/dist/ReactToastify.css";
 import { Bounce } from "react-toastify";
 
@@ -22,6 +22,18 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string>("");
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check if user was redirected after password change
+  useEffect(() => {
+    const passwordChanged = searchParams.get("passwordChanged");
+    if (passwordChanged === "true") {
+      showToastInfo(
+        "รหัสผ่านของคุณถูกเปลี่ยนแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่",
+        { autoClose: 5000 }
+      );
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

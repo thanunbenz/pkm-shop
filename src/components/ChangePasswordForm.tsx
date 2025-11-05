@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { toast } from "react-toastify";
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import logger from "@/lib/logger";
 
 interface ChangePasswordFormProps {
@@ -9,6 +11,7 @@ interface ChangePasswordFormProps {
 }
 
 export default function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [changing, setChanging] = useState(false);
   const [formData, setFormData] = useState({
@@ -80,6 +83,31 @@ export default function ChangePasswordForm({ onSuccess }: ChangePasswordFormProp
         // Call success callback
         if (onSuccess) {
           onSuccess();
+        }
+
+        // Force logout and redirect to login if required
+        if (data.data?.requireReLogin) {
+          toast.info(
+            "เพื่อความปลอดภัย กรุณาเข้าสู่ระบบใหม่ด้วยรหัสผ่านใหม่",
+            { autoClose: 3000 }
+          );
+
+          // Wait 2 seconds before logout to let user see the message
+          setTimeout(async () => {
+            try {
+              // Sign out and redirect to login page
+              await signOut({
+                redirect: true,
+                callbackUrl: "/login?passwordChanged=true",
+              });
+            } catch (error) {
+              logger.error("Failed to sign out after password change", {
+                error: error instanceof Error ? error.message : "Unknown error",
+              });
+              // Fallback: force redirect to login
+              router.push("/login?passwordChanged=true");
+            }
+          }, 2000);
         }
       } else {
         // Handle validation errors

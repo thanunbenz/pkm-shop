@@ -9,18 +9,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth/options";
-import { prisma } from "@/lib/db/prisma";
+import { authOptions } from "@/app/api/auth/[...nextauth]/options";
+import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import logger from "@/lib/logger";
 import {
   successResponse,
   errorResponse,
   unauthorizedResponse,
-  validationErrorResponse,
 } from "@/lib/utils/api-response";
-import { formatZodError } from "@/lib/utils/validation-error";
+import { formatZodError, validationErrorResponse } from "@/lib/utils/validation-error";
+import { sendPasswordChangedEmail } from "@/lib/email";
 
 /**
  * Validation schema for password change
@@ -71,11 +71,10 @@ export async function POST(request: NextRequest) {
     if (!validation.success) {
       logger.warn("Password change validation failed", {
         userId,
-        errors: validation.error.errors,
+        errors: validation.error.issues,
       });
 
-      const formattedErrors = formatZodError(validation.error);
-      return validationErrorResponse(formattedErrors);
+      return validationErrorResponse(validation.error);
     }
 
     const { currentPassword, newPassword } = validation.data;
@@ -118,11 +117,12 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // 6. Update password in database
+    const changeDate = new Date();
     await prisma.user.update({
       where: { id: userId },
       data: {
         password: hashedPassword,
-        updatedAt: new Date(),
+        updatedAt: changeDate,
       },
     });
 
@@ -130,25 +130,52 @@ export async function POST(request: NextRequest) {
     logger.info("Password changed successfully", {
       userId,
       email: user.email,
-      timestamp: new Date().toISOString(),
+      timestamp: changeDate.toISOString(),
     });
 
-    // 8. TODO: Send email notification (Issue #62)
-    // await sendPasswordChangedEmail(user.email, user.fname);
+    // 8. Get client IP address (for email notification)
+    const ipAddress =
+      request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
+      undefined;
 
-    // 9. Return success response
+    // 9. Send email notification
+    try {
+      await sendPasswordChangedEmail({
+        to: user.email,
+        customerName: user.fname,
+        changeDate,
+        ipAddress,
+      });
+
+      logger.info("Password change notification email sent", {
+        userId,
+        email: user.email,
+      });
+    } catch (emailError) {
+      // Don't fail the password change if email fails
+      logger.error("Failed to send password change notification email", {
+        error:
+          emailError instanceof Error ? emailError.message : "Unknown error",
+        userId,
+        email: user.email,
+      });
+    }
+
+    // 10. Return success response with logout flag
+    // The client will handle logging out the user
     return successResponse(
       {
         message: "เปลี่ยนรหัสผ่านสำเร็จ",
-        timestamp: new Date().toISOString(),
+        timestamp: changeDate.toISOString(),
+        requireReLogin: true, // Signal to client that re-login is needed
       },
-      "เปลี่ยนรหัสผ่านสำเร็จแล้ว กรุณาใช้รหัสผ่านใหม่ในการเข้าสู่ระบบครั้งถัดไป"
+      "เปลี่ยนรหัสผ่านสำเร็จแล้ว กรุณาเข้าสู่ระบบใหม่อีกครั้งด้วยรหัสผ่านใหม่"
     );
   } catch (error) {
     // Handle Zod validation errors
-    if (error instanceof z.ZodError) {
-      const formattedErrors = formatZodError(error);
-      return validationErrorResponse(formattedErrors);
+    if (error instanceof ZodError) {
+      return validationErrorResponse(error);
     }
 
     // Log unexpected errors

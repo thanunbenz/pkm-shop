@@ -178,3 +178,34 @@ export async function sendCodeDelivery({
     }),
   });
 }
+
+/**
+ * Send password changed notification email
+ * @param to - User email
+ * @param customerName - User's first name
+ * @param changeDate - Date and time of password change
+ * @param ipAddress - IP address of the request (optional)
+ */
+export async function sendPasswordChangedEmail({
+  to,
+  customerName,
+  changeDate,
+  ipAddress,
+}: {
+  to: string;
+  customerName: string;
+  changeDate: Date;
+  ipAddress?: string;
+}) {
+  const { PasswordChanged } = await import("@/emails/PasswordChanged");
+
+  return sendEmail({
+    to,
+    subject: `🔒 รหัสผ่านของคุณถูกเปลี่ยนแล้ว - PKM Shop`,
+    react: PasswordChanged({
+      customerName,
+      changeDate,
+      ipAddress,
+    }),
+  });
+}

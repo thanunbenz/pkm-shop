@@ -28,3 +28,18 @@ export const showToastError = (message: string) => {
     transition: Bounce,
   });
 };
+
+export const showToastInfo = (message: string, options = {}) => {
+  toast.info(message, {
+    position: "bottom-left",
+    autoClose: 5000,
+    hideProgressBar: false,
+    closeOnClick: false,
+    pauseOnFocusLoss: true,
+    draggable: true,
+    pauseOnHover: true,
+    theme: "light",
+    transition: Bounce,
+    ...options,
+  });
+};
