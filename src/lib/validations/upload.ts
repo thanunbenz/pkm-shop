@@ -1,13 +1,14 @@
 import { z } from "zod";
+import { FILE_LIMITS } from "@/config/app-constants";
 
-// File Upload Configuration
+// File Upload Configuration (kept for backward compatibility, uses centralized constants)
 export const UPLOAD_CONFIG = {
-  MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+  MAX_FILE_SIZE: FILE_LIMITS.MAX_SIZE,
   ALLOWED_FILE_TYPES: [
     "image/jpeg",
     "image/png",
     "image/webp",
-    "image/gif",
+    "image/gif", // Note: GIF not in centralized FILE_LIMITS (add if needed)
   ],
   ALLOWED_EXTENSIONS: [".jpg", ".jpeg", ".png", ".webp", ".gif"],
 } as const;

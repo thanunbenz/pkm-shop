@@ -1,9 +1,10 @@
 import { randomBytes } from "crypto";
 import prisma from "@/lib/db";
 import logger from "@/lib/logger";
+import { TOKEN_EXPIRY } from "@/config/app-constants";
 
 // Refresh token expiration: 30 days
-const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+const REFRESH_TOKEN_EXPIRY = TOKEN_EXPIRY.REFRESH_TOKEN;
 
 /**
  * Generate a cryptographically secure random refresh token

@@ -12,7 +12,8 @@
 - ✅ Database performance optimized
 - ✅ Code quality improved significantly
 - ✅ Issue #67: Production logging improvements (3 files)
-- ⏱️ **Total Work:** ~18-21 hours of development completed
+- ✅ Issue #72: Magic numbers extracted to constants (5 files)
+- ⏱️ **Total Work:** ~20-24 hours of development completed
 
 **Issues Summary:**
 - ✅ Critical: 7/7 (100%)
@@ -157,9 +158,14 @@
   - profile/page.tsx: 2 replacements
   - refresh-token.ts: 4 replacements
   - Error boundaries kept for debugging
-- [ ] **Issue #72:** Magic Numbers - Extract to constants (2-3h)
-  - Create app-constants.ts for all hardcoded numbers
-  - Rate limits, file sizes, pagination, timeouts
+- [x] **Issue #72:** Magic Numbers - Extract to constants (2-3h) ✅ **COMPLETE**
+  - Created src/config/app-constants.ts (210 lines)
+  - Centralized: Rate limits, file sizes, pagination, timeouts, tokens, validation, business logic, cache
+  - Updated middleware.ts with RATE_LIMITS constants
+  - Updated src/lib/rate-limit.ts with centralized config
+  - Updated src/lib/validations/upload.ts to use FILE_LIMITS
+  - Updated src/lib/utils/refresh-token.ts to use TOKEN_EXPIRY
+  - Fixed TypeScript type inference issue
 - [ ] **Issue #74:** N+1 Query Potential - Optimize pagination (3-4h)
   - Add proper includes to avoid N+1 queries
   - Create pagination helper utility

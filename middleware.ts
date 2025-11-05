@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import rateLimit from 'next-rate-limit';
+import { RATE_LIMITS, RATE_LIMITER_CONFIG } from '@/config/app-constants';
 
 // Create rate limiter instance
 const limiter = rateLimit({
-  interval: 60 * 1000, // 60 seconds
-  uniqueTokenPerInterval: 500, // Max 500 users per interval
+  interval: RATE_LIMITER_CONFIG.INTERVAL,
+  uniqueTokenPerInterval: RATE_LIMITER_CONFIG.UNIQUE_TOKEN_PER_INTERVAL,
 });
 
 // Helper function to get client IP
@@ -20,10 +21,10 @@ function getClientIp(request: NextRequest): string {
 
 // Rate limiting configuration for different routes
 const rateLimits: Record<string, number> = {
-  '/api/auth': 5,           // Auth endpoints: 5 requests per minute
-  '/api/v1/register': 3,     // Registration: 3 requests per minute
-  '/api/v1/upload': 10,      // Upload endpoints: 10 requests per minute
-  '/api/v1': 30,             // General API: 30 requests per minute
+  '/api/auth': RATE_LIMITS.AUTH,
+  '/api/v1/register': RATE_LIMITS.REGISTER,
+  '/api/v1/upload': RATE_LIMITS.UPLOAD,
+  '/api/v1': RATE_LIMITS.GENERAL_API,
 };
 
 /**
@@ -47,7 +48,7 @@ export async function middleware(request: NextRequest) {
     const ip = getClientIp(request);
 
     // Find the most specific rate limit for this path
-    let limit = 30; // Default limit
+    let limit: number = RATE_LIMITS.GENERAL_API; // Default limit
     for (const [path, pathLimit] of Object.entries(rateLimits)) {
       if (pathname.startsWith(path)) {
         limit = pathLimit;
@@ -69,7 +70,7 @@ export async function middleware(request: NextRequest) {
             status: 429,
             headers: {
               'Content-Type': 'application/json',
-              'Retry-After': '60',
+              'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
             },
           }
         );
@@ -84,7 +85,7 @@ export async function middleware(request: NextRequest) {
           status: 429,
           headers: {
             'Content-Type': 'application/json',
-            'Retry-After': '60',
+            'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
           },
         }
       );
