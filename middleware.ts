@@ -1,45 +1,27 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import rateLimit from 'next-rate-limit';
-import { RATE_LIMITS, RATE_LIMITER_CONFIG } from '@/config/app-constants';
 import { getCorsHeaders, getPreflightCorsHeaders } from '@/config/cors';
-
-// Create rate limiter instance
-const limiter = rateLimit({
-  interval: RATE_LIMITER_CONFIG.INTERVAL,
-  uniqueTokenPerInterval: RATE_LIMITER_CONFIG.UNIQUE_TOKEN_PER_INTERVAL,
-});
-
-// Helper function to get client IP
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0] ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
-}
-
-// Rate limiting configuration for different routes
-const rateLimits: Record<string, number> = {
-  '/api/auth': RATE_LIMITS.AUTH,
-  '/api/v1/register': RATE_LIMITS.REGISTER,
-  '/api/v1/upload': RATE_LIMITS.UPLOAD,
-  '/api/v1': RATE_LIMITS.GENERAL_API,
-};
+import {
+  checkRateLimit,
+  getIdentifierFromRequest,
+  getRateLimitConfigForPath,
+} from '@/lib/redis/rate-limiter';
+import logger from '@/lib/logger';
 
 /**
  * Unified Middleware
  *
  * Handles:
  * 1. CORS (Cross-Origin Resource Sharing)
- * 2. Rate limiting for API routes
+ * 2. Rate limiting for API routes (Redis-based with fallback)
  * 3. Authentication checks
  * 4. Authorization (role-based access control)
  * 5. API versioning headers
  *
  * Related Issues:
  * - Issue #64: Merge duplicate middleware files
+ * - Issue #76: Redis Rate Limiter Migration
  * - Issue #78: API Versioning Strategy
  * - Issue #79: CORS Configuration
  */
@@ -80,57 +62,70 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
-  // 3. RATE LIMITING (for API routes)
+  // 3. RATE LIMITING (Redis-based with in-memory fallback)
   // ============================================================
   if (pathname.startsWith('/api')) {
-    const ip = getClientIp(request);
+    // Get authentication token for user-based rate limiting
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    const userId = token?.sub as string | undefined;
 
-    // Find the most specific rate limit for this path
-    let limit: number = RATE_LIMITS.GENERAL_API; // Default limit
-    for (const [path, pathLimit] of Object.entries(rateLimits)) {
-      if (pathname.startsWith(path)) {
-        limit = pathLimit;
-        break;
-      }
-    }
+    // Get identifier (user ID or IP address)
+    const identifier = getIdentifierFromRequest(request, userId);
+
+    // Get rate limit configuration for this path
+    const rateLimitConfig = getRateLimitConfigForPath(pathname);
 
     try {
-      const headers = limiter.checkNext(request, limit);
+      // Check rate limit (uses Redis if available, falls back to in-memory)
+      const rateLimitResult = await checkRateLimit(identifier, rateLimitConfig);
 
-      const remaining = headers.get('X-RateLimit-Remaining');
-      if (remaining && parseInt(remaining) < 0) {
+      // Add rate limit headers to response
+      response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+      response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+      response.headers.set('X-RateLimit-Reset', rateLimitResult.reset.toString());
+
+      // Rate limit exceeded
+      if (!rateLimitResult.success) {
+        logger.warn('Rate limit exceeded', {
+          identifier,
+          path: pathname,
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+        });
+
         const corsHeaders = getCorsHeaders(origin);
         return new NextResponse(
           JSON.stringify({
             success: false,
             error: 'Rate limit exceeded. Please try again later.',
+            retryAfter: rateLimitResult.retryAfter || rateLimitResult.reset,
           }),
           {
             status: 429,
             headers: {
               'Content-Type': 'application/json',
-              'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
+              'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+              'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+              'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+              'Retry-After': (rateLimitResult.retryAfter || rateLimitResult.reset).toString(),
               ...corsHeaders,
             },
           }
         );
       }
-    } catch {
-      const corsHeaders = getCorsHeaders(origin);
-      return new NextResponse(
-        JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded. Please try again later.',
-        }),
-        {
-          status: 429,
-          headers: {
-            'Content-Type': 'application/json',
-            'Retry-After': RATE_LIMITER_CONFIG.RETRY_AFTER,
-            ...corsHeaders,
-          },
-        }
-      );
+
+      // Rate limit check passed
+      logger.debug('Rate limit check passed', {
+        identifier,
+        path: pathname,
+        remaining: rateLimitResult.remaining,
+      });
+    } catch (error) {
+      // Rate limiting error - log but allow request to proceed
+      logger.error('Rate limit check error:', error);
+
+      // Add warning header
+      response.headers.set('X-RateLimit-Warning', 'Rate limit check failed');
     }
   }
 
@@ -138,7 +133,8 @@ export async function middleware(request: NextRequest) {
   // 4. AUTHENTICATION & AUTHORIZATION (for protected routes)
   // ============================================================
 
-  // Get authentication token
+  // Note: Token may have already been fetched for rate limiting above
+  // We need to fetch it again here for non-API routes
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
   // Redirect invalid URL patterns
