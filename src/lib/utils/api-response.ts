@@ -5,6 +5,7 @@
  * Ensures consistent response format, proper status codes, and helpful metadata.
  *
  * Related: Issue #77 - Inconsistent API Responses
+ * Related: Issue #71 - Inconsistent Error Messages (i18n support)
  */
 
 import { NextResponse } from "next/server";
@@ -16,6 +17,7 @@ import type {
   ApiErrorCode,
 } from "@/types/api-response";
 import { randomUUID } from "crypto";
+import { getMessage, getLanguageFromRequest, type Language, type MessageKey } from "./i18n";
 
 /**
  * Generate request ID for tracing
@@ -309,4 +311,166 @@ export function withCorsHeaders<T>(
   response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   return response;
+}
+
+// ============================================================
+// I18N-AWARE RESPONSE HELPERS (Issue #71)
+// ============================================================
+
+/**
+ * Create error response with translated message key
+ *
+ * @param messageKey - Message key from i18n dictionary
+ * @param status - HTTP status code
+ * @param lang - Language preference
+ * @param params - Optional parameters for string interpolation
+ * @param code - Optional error code
+ * @param details - Optional error details
+ * @returns Error response with translated message
+ *
+ * @example
+ * ```typescript
+ * return errorResponseI18n("auth.unauthorized", 401, "th");
+ * ```
+ */
+export function errorResponseI18n(
+  messageKey: MessageKey,
+  status: number = 400,
+  lang: Language = "th",
+  params?: Record<string, string>,
+  code?: ApiErrorCode | string,
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  const translatedMessage = getMessage(messageKey, lang, params);
+  return errorResponse(translatedMessage, status, details, code);
+}
+
+/**
+ * Create error response with automatic language detection from request
+ *
+ * @param messageKey - Message key from i18n dictionary
+ * @param headers - Request headers for language detection
+ * @param status - HTTP status code
+ * @param params - Optional parameters for string interpolation
+ * @param code - Optional error code
+ * @param details - Optional error details
+ * @returns Error response with translated message
+ *
+ * @example
+ * ```typescript
+ * return errorResponseWithLang("product.notFound", request.headers, 404);
+ * ```
+ */
+export function errorResponseWithLang(
+  messageKey: MessageKey,
+  headers: Headers,
+  status: number = 400,
+  params?: Record<string, string>,
+  code?: ApiErrorCode | string,
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  const lang = getLanguageFromRequest(headers);
+  return errorResponseI18n(messageKey, status, lang, params, code, details);
+}
+
+/**
+ * Create success response with translated message key
+ *
+ * @param data - Response data
+ * @param messageKey - Message key from i18n dictionary
+ * @param status - HTTP status code
+ * @param lang - Language preference
+ * @param params - Optional parameters for string interpolation
+ * @returns Success response with translated message
+ *
+ * @example
+ * ```typescript
+ * return successResponseI18n(user, "register.success", 201, "th");
+ * ```
+ */
+export function successResponseI18n<T>(
+  data: T,
+  messageKey: MessageKey,
+  status: number = 200,
+  lang: Language = "th",
+  params?: Record<string, string>
+): NextResponse<ApiSuccessResponse<T>> {
+  const translatedMessage = getMessage(messageKey, lang, params);
+  return successResponse(data, translatedMessage, status);
+}
+
+/**
+ * Create success response with automatic language detection from request
+ *
+ * @param data - Response data
+ * @param messageKey - Message key from i18n dictionary
+ * @param headers - Request headers for language detection
+ * @param status - HTTP status code
+ * @param params - Optional parameters for string interpolation
+ * @returns Success response with translated message
+ *
+ * @example
+ * ```typescript
+ * return successResponseWithLang(product, "product.createSuccess", request.headers, 201);
+ * ```
+ */
+export function successResponseWithLang<T>(
+  data: T,
+  messageKey: MessageKey,
+  headers: Headers,
+  status: number = 200,
+  params?: Record<string, string>
+): NextResponse<ApiSuccessResponse<T>> {
+  const lang = getLanguageFromRequest(headers);
+  return successResponseI18n(data, messageKey, status, lang, params);
+}
+
+/**
+ * Shortcut: Unauthorized response with i18n
+ */
+export function unauthorizedResponseI18n(
+  lang: Language = "th",
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  return errorResponseI18n("auth.unauthorized", 401, lang, undefined, "UNAUTHORIZED", details);
+}
+
+/**
+ * Shortcut: Forbidden response with i18n
+ */
+export function forbiddenResponseI18n(
+  lang: Language = "th",
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  return errorResponseI18n("auth.forbidden", 403, lang, undefined, "FORBIDDEN", details);
+}
+
+/**
+ * Shortcut: Not found response with i18n
+ */
+export function notFoundResponseI18n(
+  messageKey: MessageKey = "error.notFound",
+  lang: Language = "th",
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  return errorResponseI18n(messageKey, 404, lang, undefined, "NOT_FOUND", details);
+}
+
+/**
+ * Shortcut: Validation error response with i18n
+ */
+export function validationErrorResponseI18n(
+  lang: Language = "th",
+  details?: unknown
+): NextResponse<ApiErrorResponse> {
+  return errorResponseI18n("validation.failed", 400, lang, undefined, "VALIDATION_ERROR", details);
+}
+
+/**
+ * Shortcut: Rate limit exceeded response with i18n
+ */
+export function rateLimitResponseI18n(
+  lang: Language = "th"
+): NextResponse<ApiErrorResponse> {
+  return errorResponseI18n("rateLimit.exceeded", 429, lang, undefined, "RATE_LIMIT_EXCEEDED");
 }

@@ -195,10 +195,24 @@
 
 **📋 Complete Implementation Plan:** [docs/03-development/WEEK1_MEDIUM_PRIORITY_PLAN.md](docs/03-development/WEEK1_MEDIUM_PRIORITY_PLAN.md)
 
-**Week 2 (15-20h):**
-- [ ] **Issue #71:** Inconsistent Error Messages - Thai vs English (4-5h)
+**Week 2 (15-20h) - 🚧 IN PROGRESS:**
+- [x] **Issue #71:** Inconsistent Error Messages - Thai vs English (4-5h) ✅
+  - ✅ Created centralized message dictionary with 100+ translations (Thai/English)
+  - ✅ Implemented server-side i18n utility with auto-detection
+  - ✅ Created client-side useTranslation React hook
+  - ✅ Added i18n support to API response helpers
+  - ✅ Updated validation error responses with i18n
+  - ✅ Complete documentation: [docs/03-development/I18N_IMPLEMENTATION.md](docs/03-development/I18N_IMPLEMENTATION.md)
+  - **Files Created:**
+    - src/config/i18n/messages.ts (650+ lines)
+    - src/lib/utils/i18n.ts (220+ lines)
+    - src/hooks/useTranslation.ts (170+ lines)
+    - docs/03-development/I18N_IMPLEMENTATION.md (900+ lines)
+  - **Files Modified:**
+    - src/lib/utils/api-response.ts (+160 lines i18n functions)
+    - src/lib/utils/validation-error.ts (added i18n support)
 - [ ] **Issue #79:** Missing CORS Configuration - Add CORS headers (2-3h)
-- [ ] **Issue #82:** Missing Database Validation - Add CHECK constraints (2-3h)
+- [ ] **Issue #82:** Missing Database Validation - ADD CHECK constraints (2-3h)
 - [ ] **Issue #85:** Missing API Documentation - Add Swagger/OpenAPI (8-10h)
 
 **Week 3-4 (20-25h):**

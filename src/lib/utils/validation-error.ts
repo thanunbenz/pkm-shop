@@ -1,15 +1,19 @@
 import { ZodError } from "zod";
 import { NextResponse } from "next/server";
+import { getMessage, getLanguageFromRequest, type Language } from "./i18n";
 
 /**
- * Format Zod validation errors into user-friendly messages
+ * Format Zod validation errors into user-friendly messages with i18n support
  */
-export function formatZodError(error: ZodError): Record<string, string[]> {
+export function formatZodError(
+  error: ZodError,
+  lang: Language = "th"
+): Record<string, string[]> {
   const formattedErrors: Record<string, string[]> = {};
 
   // Safety check for error.issues (ZodError uses 'issues', not 'errors')
   if (!error || !error.issues || !Array.isArray(error.issues)) {
-    return { _error: ["Validation failed"] };
+    return { _error: [getMessage("validation.failed", lang)] };
   }
 
   error.issues.forEach((err) => {
@@ -24,28 +28,44 @@ export function formatZodError(error: ZodError): Record<string, string[]> {
 }
 
 /**
- * Get first error message from Zod error
+ * Get first error message from Zod error with i18n support
  */
-export function getFirstZodError(error: ZodError): string {
+export function getFirstZodError(error: ZodError, lang: Language = "th"): string {
   // Safety check for error.issues
   if (!error || !error.issues || !Array.isArray(error.issues) || error.issues.length === 0) {
-    return "Validation failed";
+    return getMessage("validation.failed", lang);
   }
-  return error.issues[0]?.message || "Validation failed";
+  return error.issues[0]?.message || getMessage("validation.failed", lang);
 }
 
 /**
- * Create validation error response
+ * Create validation error response with i18n support
  */
-export function validationErrorResponse(error: ZodError, status: number = 400) {
+export function validationErrorResponse(
+  error: ZodError,
+  status: number = 400,
+  lang: Language = "th"
+) {
   return NextResponse.json(
     {
       success: false,
-      error: "Validation failed",
-      errors: formatZodError(error),
+      error: getMessage("validation.failed", lang),
+      errors: formatZodError(error, lang),
     },
     { status }
   );
+}
+
+/**
+ * Create validation error response with language detection from request
+ */
+export function validationErrorResponseWithLang(
+  error: ZodError,
+  headers: Headers,
+  status: number = 400
+) {
+  const lang = getLanguageFromRequest(headers);
+  return validationErrorResponse(error, status, lang);
 }
 
 /**
@@ -72,14 +92,14 @@ export function validateOrRespond<T>(
 }
 
 /**
- * Extract validation errors for form display
+ * Extract validation errors for form display with i18n support
  */
-export function extractFormErrors(error: ZodError): { [key: string]: string } {
+export function extractFormErrors(error: ZodError, lang: Language = "th"): { [key: string]: string } {
   const errors: { [key: string]: string } = {};
 
   // Safety check for error.issues
   if (!error || !error.issues || !Array.isArray(error.issues)) {
-    return { _error: "Validation failed" };
+    return { _error: getMessage("validation.failed", lang) };
   }
 
   error.issues.forEach((err) => {
