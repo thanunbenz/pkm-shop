@@ -20,7 +20,11 @@
       "Bash(docker exec:*)",
       "Bash(git checkout:*)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(find:*)",
+      "Bash(git mv:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

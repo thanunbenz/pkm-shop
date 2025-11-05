@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from "react";
 
-export default function FloatingScrollUp() {
+export default function FloatingScrollToTopButton() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

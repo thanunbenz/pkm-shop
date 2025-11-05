@@ -15,7 +15,7 @@ interface Product {
     code: [];
 }
 
-const ProductItem = ({ product, handleDelete }: { product: Product, handleDelete: (id: string) => void }) => {
+const ProductDeleteButton = ({ product, handleDelete }: { product: Product, handleDelete: (id: string) => void }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -80,4 +80,4 @@ const ProductItem = ({ product, handleDelete }: { product: Product, handleDelete
     );
 };
 
-export default ProductItem;
+export default ProductDeleteButton;

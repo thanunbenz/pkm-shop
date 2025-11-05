@@ -3,17 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/authOptions";
 import { redirect } from "next/navigation";
 import AddProductButton from "@/components/ui/AddProductButton";
-import ProductManagementTable from "@/components/ui/ProductManagementTable";
+import DataTable from "@/components/ui/DataTable";
 
 async function getProducts() {
   try {
     const products = await prisma.product.findMany({
       include: {
-        code: {
-          orderBy: {
-            createdAt: "desc"
-          }
-        },
+        code: true, // Include codes relation
       },
       orderBy: {
         createdAt: "desc",
@@ -21,6 +17,7 @@ async function getProducts() {
     });
     return products;
   } catch (error) {
+    console.error("Error fetching products:", error);
     return [];
   }
 }
@@ -39,12 +36,12 @@ export default async function Page() {
 
   return (
     <>
-      <div className="-mx-6 px-6 flex flex-row items-center">
-  <h3 className="text-2xl font-bold text-gray-700 flex-grow">Product</h3>
-  <AddProductButton />
-</div>
+      <div className="flex flex-row justify-between items-center">
+        <h3 className="text-2xl font-bold text-gray-700">Product</h3>
+        <AddProductButton />
+      </div>
       <hr className="border-gray-300 my-3 border" />
-      <ProductManagementTable initialProducts={products} />
+      <DataTable initialProducts={products} />
     </>
   );
 }

@@ -17,7 +17,9 @@ export async function GET() {
                 data: {
                     welcomeTitle: "Welcome to PKM Shop",
                     welcomeSubtitle: "Your one-stop shop for Pokémon TCG Live codes",
-                    showWelcome: true
+                    showWelcome: true,
+                    supportEmail: process.env.EMAIL_SUPPORT || process.env.EMAIL_FROM || null,
+                    enableEmailNotifications: true,
                 }
             });
         }
@@ -63,7 +65,7 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        const { welcomeTitle, welcomeSubtitle, showWelcome } = validationResult.data;
+        const validatedFields = validationResult.data;
 
         // ดึง settings ปัจจุบัน
         let settings = await prisma.siteSettings.findFirst();
@@ -72,20 +74,42 @@ export async function PUT(request: NextRequest) {
             // สร้างใหม่ถ้ายังไม่มี
             settings = await prisma.siteSettings.create({
                 data: {
-                    welcomeTitle: welcomeTitle || "Welcome to PKM Shop",
-                    welcomeSubtitle: welcomeSubtitle || null,
-                    showWelcome: showWelcome !== undefined ? showWelcome : true
+                    welcomeTitle: validatedFields.welcomeTitle || "Welcome to PKM Shop",
+                    welcomeSubtitle: validatedFields.welcomeSubtitle || null,
+                    showWelcome: validatedFields.showWelcome !== undefined ? validatedFields.showWelcome : true,
+                    supportEmail: validatedFields.supportEmail || process.env.EMAIL_SUPPORT || null,
+                    enableEmailNotifications: validatedFields.enableEmailNotifications !== undefined ? validatedFields.enableEmailNotifications : true,
+                    shopName: validatedFields.shopName || null,
+                    seoTitle: validatedFields.seoTitle || null,
+                    seoDescription: validatedFields.seoDescription || null,
+                    seoKeywords: validatedFields.seoKeywords || null,
+                    logoUrl: validatedFields.logoUrl || null,
+                    faviconUrl: validatedFields.faviconUrl || null,
+                    primaryColor: validatedFields.primaryColor || null,
+                    disclaimer: validatedFields.disclaimer || null,
                 }
             });
         } else {
-            // อัปเดต
+            // อัปเดตเฉพาะฟิลด์ที่ส่งมา
+            const updateData: Record<string, unknown> = {};
+
+            if (validatedFields.welcomeTitle !== undefined) updateData.welcomeTitle = validatedFields.welcomeTitle;
+            if (validatedFields.welcomeSubtitle !== undefined) updateData.welcomeSubtitle = validatedFields.welcomeSubtitle;
+            if (validatedFields.showWelcome !== undefined) updateData.showWelcome = validatedFields.showWelcome;
+            if (validatedFields.supportEmail !== undefined) updateData.supportEmail = validatedFields.supportEmail;
+            if (validatedFields.enableEmailNotifications !== undefined) updateData.enableEmailNotifications = validatedFields.enableEmailNotifications;
+            if (validatedFields.shopName !== undefined) updateData.shopName = validatedFields.shopName;
+            if (validatedFields.seoTitle !== undefined) updateData.seoTitle = validatedFields.seoTitle;
+            if (validatedFields.seoDescription !== undefined) updateData.seoDescription = validatedFields.seoDescription;
+            if (validatedFields.seoKeywords !== undefined) updateData.seoKeywords = validatedFields.seoKeywords;
+            if (validatedFields.logoUrl !== undefined) updateData.logoUrl = validatedFields.logoUrl;
+            if (validatedFields.faviconUrl !== undefined) updateData.faviconUrl = validatedFields.faviconUrl;
+            if (validatedFields.primaryColor !== undefined) updateData.primaryColor = validatedFields.primaryColor;
+            if (validatedFields.disclaimer !== undefined) updateData.disclaimer = validatedFields.disclaimer;
+
             settings = await prisma.siteSettings.update({
                 where: { id: settings.id },
-                data: {
-                    welcomeTitle: welcomeTitle !== undefined ? welcomeTitle : settings.welcomeTitle,
-                    welcomeSubtitle: welcomeSubtitle !== undefined ? welcomeSubtitle : settings.welcomeSubtitle,
-                    showWelcome: showWelcome !== undefined ? showWelcome : settings.showWelcome
-                }
+                data: updateData
             });
         }
 

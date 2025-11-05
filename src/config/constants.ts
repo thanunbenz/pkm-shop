@@ -12,8 +12,16 @@ export const ROUTES = {
   PRODUCTS: '/products',
 } as const;
 
+// Validate required JWT_SECRET at startup
+if (!process.env.JWT_SECRET) {
+  throw new Error(
+    'FATAL: JWT_SECRET environment variable is required. ' +
+    'Please set it in your .env file or environment variables.'
+  );
+}
+
 export const AUTH_CONFIG = {
-  JWT_SECRET: process.env.JWT_SECRET || 'your-secret-key',
+  JWT_SECRET: process.env.JWT_SECRET,
   SESSION_MAX_AGE: 30 * 24 * 60 * 60, // 30 days
 } as const;
 

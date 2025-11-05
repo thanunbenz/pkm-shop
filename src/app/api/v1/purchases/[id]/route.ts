@@ -163,54 +163,59 @@ export async function PATCH(
     }> | Prisma.PaymentGetPayload<true>;
 
     if (updateType === "purchase") {
-      // Update purchase status
-      updatedData = await prisma.purchase.update({
-        where: { id: purchaseId },
-        data: {
-          status: 'status' in validatedData ? validatedData.status : undefined,
-        },
-        include: {
-          payment: true,
-          product: {
-            select: {
-              name: true,
-              image: true,
-            },
+      // ✅ Issue #81: Wrap purchase + payment updates in transaction
+      updatedData = await prisma.$transaction(async (tx) => {
+        // Update purchase status
+        const updated = await tx.purchase.update({
+          where: { id: purchaseId },
+          data: {
+            status: 'status' in validatedData ? validatedData.status : undefined,
           },
-          user: {
-            select: {
-              email: true,
-              fname: true,
-              lname: true,
+          include: {
+            payment: true,
+            product: {
+              select: {
+                name: true,
+                image: true,
+              },
             },
-          },
-          purchaseCodes: {
-            include: {
-              code: {
-                select: {
-                  code: true,
+            user: {
+              select: {
+                email: true,
+                fname: true,
+                lname: true,
+              },
+            },
+            purchaseCodes: {
+              include: {
+                code: {
+                  select: {
+                    code: true,
+                  },
                 },
               },
             },
           },
-        },
-      });
-
-      // Update payment adminNotes if provided
-      if ('adminNotes' in validatedData && validatedData.adminNotes && purchase.payment) {
-        await prisma.payment.update({
-          where: { id: purchase.payment.id },
-          data: {
-            adminNotes: validatedData.adminNotes,
-          },
         });
-      }
+
+        // Update payment adminNotes if provided
+        if ('adminNotes' in validatedData && validatedData.adminNotes && purchase.payment) {
+          await tx.payment.update({
+            where: { id: purchase.payment.id },
+            data: {
+              adminNotes: validatedData.adminNotes,
+            },
+          });
+        }
+
+        return updated;
+      });
 
       // ✅ Audit log: Purchase status updated
       const newStatus = 'status' in validatedData ? validatedData.status : undefined;
       if (newStatus === "COMPLETED") {
         await logApprove(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Approved and completed purchase #${purchaseId}`,
@@ -224,7 +229,7 @@ export async function PATCH(
         );
       } else if (newStatus === "CANCELED") {
         await logReject(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Canceled purchase #${purchaseId}`,
@@ -238,7 +243,7 @@ export async function PATCH(
         );
       } else {
         await logUpdate(
-          session.user.id,
+          session.user.id!,
           'Purchase',
           purchaseId.toString(),
           `Updated purchase #${purchaseId} status`,
@@ -299,7 +304,7 @@ export async function PATCH(
 
           // ✅ Audit log: Codes delivered
           await logDeliver(
-            session.user.id,
+            session.user.id!,
             'Purchase',
             purchaseId.toString(),
             `Delivered ${codes.length} code(s) for purchase #${purchaseId}`,
@@ -339,19 +344,27 @@ export async function PATCH(
         paymentUpdate.paidAt = new Date();
       }
 
-      updatedData = await prisma.payment.update({
-        where: { id: purchase.payment.id },
-        data: paymentUpdate,
-      });
-
-      // Auto-complete purchase if payment is successful
-      if ('paymentStatus' in validatedData && validatedData.paymentStatus === "SUCCESS" && purchase.status === "PENDING") {
-        await prisma.purchase.update({
-          where: { id: purchaseId },
-          data: { status: "COMPLETED" },
+      // ✅ Issue #81: Wrap payment + purchase updates in transaction
+      updatedData = await prisma.$transaction(async (tx) => {
+        // Update payment status (safe: already checked purchase.payment exists on line 318)
+        const updated = await tx.payment.update({
+          where: { id: purchase.payment!.id },
+          data: paymentUpdate,
         });
 
-        // ✅ Send code delivery email when payment success auto-completes the purchase
+        // Auto-complete purchase if payment is successful
+        if ('paymentStatus' in validatedData && validatedData.paymentStatus === "SUCCESS" && purchase.status === "PENDING") {
+          await tx.purchase.update({
+            where: { id: purchaseId },
+            data: { status: "COMPLETED" },
+          });
+        }
+
+        return updated;
+      });
+
+      // ✅ Send code delivery email when payment success auto-completes the purchase
+      if ('paymentStatus' in validatedData && validatedData.paymentStatus === "SUCCESS" && purchase.status === "PENDING") {
         const purchaseWithDetails = await prisma.purchase.findUnique({
           where: { id: purchaseId },
           include: {
@@ -415,7 +428,7 @@ export async function PATCH(
       const newPaymentStatus = 'paymentStatus' in validatedData ? validatedData.paymentStatus : undefined;
       if (newPaymentStatus === "SUCCESS") {
         await logApprove(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Approved payment for purchase #${purchaseId}`,
@@ -431,7 +444,7 @@ export async function PATCH(
         );
       } else if (newPaymentStatus === "FAILED") {
         await logReject(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Rejected payment for purchase #${purchaseId}`,
@@ -446,7 +459,7 @@ export async function PATCH(
         );
       } else {
         await logUpdate(
-          session.user.id,
+          session.user.id!,
           'Payment',
           purchase.payment.id.toString(),
           `Updated payment status for purchase #${purchaseId}`,

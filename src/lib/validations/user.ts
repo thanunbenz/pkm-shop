@@ -52,12 +52,14 @@ export const loginSchema = z.object({
 export const updateProfileSchema = z.object({
   fname: z
     .string()
+    .trim()
     .min(2, "ชื่อต้องมีอย่างน้อย 2 ตัวอักษร")
     .max(50, "ชื่อต้องไม่เกิน 50 ตัวอักษร")
     .optional(),
 
   lname: z
     .string()
+    .trim()
     .min(2, "นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร")
     .max(50, "นามสกุลต้องไม่เกิน 50 ตัวอักษร")
     .optional(),

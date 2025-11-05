@@ -1,8 +1,10 @@
 import { randomBytes } from "crypto";
 import prisma from "@/lib/db";
+import logger from "@/lib/logger";
+import { TOKEN_EXPIRY } from "@/config/app-constants";
 
 // Refresh token expiration: 30 days
-const REFRESH_TOKEN_EXPIRY = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+const REFRESH_TOKEN_EXPIRY = TOKEN_EXPIRY.REFRESH_TOKEN;
 
 /**
  * Generate a cryptographically secure random refresh token
@@ -79,7 +81,10 @@ export async function validateRefreshToken(token: string) {
 
     return refreshToken;
   } catch (error) {
-    console.error("Error validating refresh token:", error);
+    logger.error("Failed to validate refresh token", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      tokenPreview: token.substring(0, 10) + "...",
+    });
     return null;
   }
 }
@@ -119,7 +124,10 @@ export async function revokeRefreshToken(token: string) {
     });
     return true;
   } catch (error) {
-    console.error("Error revoking refresh token:", error);
+    logger.error("Failed to revoke refresh token", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      tokenPreview: token.substring(0, 10) + "...",
+    });
     return false;
   }
 }
@@ -136,7 +144,10 @@ export async function revokeAllUserRefreshTokens(userId: number) {
     });
     return result.count;
   } catch (error) {
-    console.error("Error revoking all user refresh tokens:", error);
+    logger.error("Failed to revoke all user refresh tokens", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      userId,
+    });
     return 0;
   }
 }
@@ -156,7 +167,9 @@ export async function cleanupExpiredTokens() {
     });
     return result.count;
   } catch (error) {
-    console.error("Error cleaning up expired tokens:", error);
+    logger.error("Failed to cleanup expired refresh tokens", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return 0;
   }
 }
