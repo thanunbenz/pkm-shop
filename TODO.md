@@ -148,12 +148,25 @@
 - [x] **Issue #75:** Missing Database Indexes - Add performance indexes (2-3h) ✅
 
 #### 🟢 Medium Priority - Quality Improvements (14 issues, ~50-65 hours)
-**Week 1 (15-20h):**
+
+**Week 1 (15-20h) - READY TO IMPLEMENT** 📝
 - [ ] **Issue #67:** Console.log in Production - Replace with logger (2-3h)
+  - Found 10 files with console.log/error/warn
+  - See implementation plan below
 - [ ] **Issue #72:** Magic Numbers - Extract to constants (2-3h)
+  - Create app-constants.ts for all hardcoded numbers
+  - Rate limits, file sizes, pagination, timeouts
 - [ ] **Issue #74:** N+1 Query Potential - Optimize pagination (3-4h)
+  - Add proper includes to avoid N+1 queries
+  - Create pagination helper utility
 - [ ] **Issue #77:** Inconsistent API Responses - Standardize format (5-6h)
+  - Create standard response types & helpers
+  - Update all API routes
 - [ ] **Issue #78:** Missing API Versioning Strategy - Document policy (2-3h)
+  - Create versioning policy document
+  - Add version headers
+
+**📋 Complete Implementation Plan:** [docs/03-development/WEEK1_MEDIUM_PRIORITY_PLAN.md](docs/03-development/WEEK1_MEDIUM_PRIORITY_PLAN.md)
 
 **Week 2 (15-20h):**
 - [ ] **Issue #71:** Inconsistent Error Messages - Thai vs English (4-5h)
