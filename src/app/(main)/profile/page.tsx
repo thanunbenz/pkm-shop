@@ -15,6 +15,13 @@ interface UserProfile {
   updatedAt: string;
 }
 
+interface ProfileUpdatePayload {
+  fname?: string;
+  lname?: string;
+  email?: string;
+  currentPassword?: string;
+}
+
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -104,7 +111,7 @@ export default function ProfilePage() {
     try {
       setUpdating(true);
 
-      const updatePayload: any = {};
+      const updatePayload: ProfileUpdatePayload = {};
 
       if (formData.fname !== profile.fname) {
         updatePayload.fname = formData.fname;

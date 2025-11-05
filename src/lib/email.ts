@@ -1,5 +1,9 @@
 import { Resend } from "resend";
 import logger from "./logger";
+import { validateEmailConfig } from "./startup-validation";
+
+// Validate email configuration at startup
+validateEmailConfig();
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
