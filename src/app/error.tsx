@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
-import * as Sentry from '@sentry/nextjs'
 
 export default function Error({
   error,
@@ -17,12 +16,16 @@ export default function Error({
     // Log to console in development
     console.error('Application error:', error)
 
-    // Report to Sentry in production
+    // Report to Sentry in production (dynamic import to avoid bundling server-side code)
     if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      Sentry.captureException(error, {
-        tags: {
-          errorBoundary: 'root',
-        },
+      import('@sentry/nextjs').then((Sentry) => {
+        Sentry.captureException(error, {
+          tags: {
+            errorBoundary: 'root',
+          },
+        })
+      }).catch((err) => {
+        console.error('Failed to load Sentry:', err)
       })
     }
   }, [error])
