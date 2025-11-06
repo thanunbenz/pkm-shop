@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import logger from "@/lib/logger";
+import logger from "@/lib/logger-client";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 
 interface UserProfile {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import logger from "@/lib/logger";
+import logger from "@/lib/logger-client";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();

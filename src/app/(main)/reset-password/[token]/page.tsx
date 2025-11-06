@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "react-toastify";
-import logger from "@/lib/logger";
+import logger from "@/lib/logger-client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
