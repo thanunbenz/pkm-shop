@@ -1,19 +1,22 @@
-import { Resend } from "resend";
+import sgMail from "@sendgrid/mail";
+import { render } from "@react-email/components";
 import logger from "./logger";
 import { validateEmailConfig } from "./startup-validation";
 
 // Validate email configuration at startup
 validateEmailConfig();
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize SendGrid client
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 // Email configuration
 const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@pkm-shop.com";
 const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || "support@pkm-shop.com";
 
 /**
- * Send email using Resend
+ * Send email using SendGrid
  * @param to - Recipient email address
  * @param subject - Email subject
  * @param react - React email component
@@ -35,8 +38,8 @@ export async function sendEmail({
     }
 
     // Check if API key is configured
-    if (!process.env.RESEND_API_KEY) {
-      logger.error("RESEND_API_KEY is not configured");
+    if (!process.env.SENDGRID_API_KEY) {
+      logger.error("SENDGRID_API_KEY is not configured");
       throw new Error("Email service is not configured");
     }
 
@@ -46,38 +49,37 @@ export async function sendEmail({
       from: FROM_EMAIL,
     });
 
-    const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: [to],
-      subject,
-      react,
-      replyTo: REPLY_TO_EMAIL,
-    });
+    // Render React component to HTML
+    const html = render(react);
 
-    if (error) {
-      logger.error("Failed to send email", {
-        error: error.message,
-        to,
-        subject,
-      });
-      throw new Error(`Failed to send email: ${error.message}`);
-    }
+    // Send email using SendGrid
+    const msg = {
+      to,
+      from: FROM_EMAIL,
+      subject,
+      html,
+      replyTo: REPLY_TO_EMAIL,
+    };
+
+    const response = await sgMail.send(msg);
 
     logger.info("Email sent successfully", {
-      emailId: data?.id,
+      messageId: response[0]?.headers?.["x-message-id"],
       to,
       subject,
+      statusCode: response[0]?.statusCode,
     });
 
     return {
       success: true,
-      emailId: data?.id,
+      messageId: response[0]?.headers?.["x-message-id"],
     };
-  } catch (error) {
+  } catch (error: any) {
     logger.error("Email sending error", {
       error: error instanceof Error ? error.message : "Unknown error",
       to,
       subject,
+      sendgridError: error?.response?.body,
     });
 
     // Don't throw error to prevent blocking the main operation

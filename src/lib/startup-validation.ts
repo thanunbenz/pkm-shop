@@ -33,7 +33,7 @@ const REQUIRED_ENV_VARS = {
   DATABASE_URL: 'DATABASE_URL is required for database connection',
 
   // Email (Optional in development, required in production)
-  RESEND_API_KEY: 'RESEND_API_KEY is required for sending emails',
+  SENDGRID_API_KEY: 'SENDGRID_API_KEY is required for sending emails',
 } as const;
 
 /**
@@ -56,8 +56,8 @@ export function validateRequiredEnvVars(): EnvValidationResult {
   // Check required variables
   for (const [key, description] of Object.entries(REQUIRED_ENV_VARS)) {
     if (!process.env[key]) {
-      // In development, RESEND_API_KEY is optional (will use console logging)
-      if (key === 'RESEND_API_KEY' && process.env.NODE_ENV === 'development') {
+      // In development, SENDGRID_API_KEY is optional (will use console logging)
+      if (key === 'SENDGRID_API_KEY' && process.env.NODE_ENV === 'development') {
         logger.warn(`${description} (optional in development)`, { envVar: key });
         continue;
       }
@@ -123,23 +123,23 @@ export function validateEnvOnStartup() {
  * Validate email configuration specifically
  */
 export function validateEmailConfig(): boolean {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.SENDGRID_API_KEY) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(
-        'RESEND_API_KEY is required in production for sending emails. ' +
+        'SENDGRID_API_KEY is required in production for sending emails. ' +
         'Please set it in your environment variables.'
       );
     }
-    logger.warn('RESEND_API_KEY not set - emails will not be sent', {
+    logger.warn('SENDGRID_API_KEY not set - emails will not be sent', {
       nodeEnv: process.env.NODE_ENV,
     });
     return false;
   }
 
-  // Validate API key format (Resend keys start with "re_")
-  if (!process.env.RESEND_API_KEY.startsWith('re_')) {
-    logger.warn('RESEND_API_KEY format looks invalid (should start with "re_")', {
-      keyPrefix: process.env.RESEND_API_KEY.substring(0, 3),
+  // Validate API key format (SendGrid keys start with "SG.")
+  if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
+    logger.warn('SENDGRID_API_KEY format looks invalid (should start with "SG.")', {
+      keyPrefix: process.env.SENDGRID_API_KEY.substring(0, 3),
     });
     return false;
   }
@@ -156,7 +156,7 @@ export function getEnvInfo() {
     hasJwtSecret: !!process.env.JWT_SECRET,
     hasNextAuthSecret: !!process.env.NEXTAUTH_SECRET,
     hasDatabaseUrl: !!process.env.DATABASE_URL,
-    hasResendApiKey: !!process.env.RESEND_API_KEY,
+    hasSendGridApiKey: !!process.env.SENDGRID_API_KEY,
     hasEmailFrom: !!process.env.EMAIL_FROM,
     hasEmailSupport: !!process.env.EMAIL_SUPPORT,
   };
