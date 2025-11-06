@@ -299,7 +299,7 @@ const securityText = {
 
 const tipsBox = {
   backgroundColor: "#d4edda",
-  border: "1px solid "#c3e6cb",
+  border: "1px solid #c3e6cb",
   borderRadius: "8px",
   padding: "24px",
   margin: "24px 0",
