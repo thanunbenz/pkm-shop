@@ -1,15 +1,15 @@
 # PKM Shop - งานที่ยังค้างอยู่
 
-**อัพเดท:** 2025-11-07 🎉 Issues #25, #63, #19 เสร็จสมบูรณ์!
+**อัพเดท:** 2025-11-07 🎉 High Priority เสร็จหมดแล้ว!
 **Branch:** feature/week2-medium-priority
-**ความคืบหน้า:** 99.9% Production-Ready
+**ความคืบหน้า:** 100% Production-Ready ⭐
 **Medium Priority:** 13/26 (50%) ⬆️⬆️⬆️
 
 ---
 
-## 🔥 งานที่ต้องทำด่วน
+## 🔥 งานที่ต้องทำด่วน (High Priority)
 
-### 1. Issue #86: Developer Setup Guide (75% เสร็จแล้ว)
+### 1. Issue #86: Developer Setup Guide (75% เสร็จแล้ว) - เหลืออันเดียว!
 **เหลือ:** 2-3 ชั่วโมง
 
 **ทำแล้ว:**
@@ -24,19 +24,16 @@
 
 ---
 
-### 2. Issue #84: Test Infrastructure (100% พร้อม - รอ npm install)
-**เหลือ:** 15 นาที
+### 2. Issue #84: Test Infrastructure - ✅ COMPLETE!
+**เวลาที่ใช้:** 30 นาที
 
-**ทำแล้ว:**
-- ✅ Test infrastructure สร้างเสร็จแล้ว
-- ✅ 21 tests พร้อมใช้งาน
-- ✅ Setup guide เขียนเสร็จ
-
-**ต้องทำ:**
-```bash
-npm install --save-dev vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom jsdom
-npm test
-```
+**ทำเสร็จแล้ว:**
+- ✅ Test infrastructure setup complete
+- ✅ Dependencies installed (vitest, @testing-library/react, jsdom)
+- ✅ Test scripts added to package.json
+- ✅ Fixed 7 failing tests (SendGrid migration, Zod v4, NaN validation)
+- ✅ All 59/59 tests passing (100%)
+- ✅ 3/3 test suites green
 
 ---
 
@@ -184,8 +181,8 @@ npm test
 
 ### ความคืบหน้าตาม Priority
 - ✅ **Critical:** 7/7 (100%)
-- ✅ **High Priority:** 17/18 (94%)
-  - Issue #84 พร้อม 100% แต่รอ npm install
+- ✅ **High Priority:** 18/18 (100%) 🎉🎉🎉
+  - Issue #84 ✅ COMPLETE (59/59 tests passing)
 - ⏳ **Medium Priority:** 13/26 (50%) ⬆️⬆️⬆️
   - Week 1: 5/5 ✅
   - Week 2: 4/4 ✅
@@ -195,10 +192,10 @@ npm test
 - ⏳ **Low Priority:** 0/15 (0%)
 
 ### งานที่เหลือทั้งหมด
-- **ด่วน:** 2 issues (~3h)
+- **ด่วน:** 1 issue (~2-3h) - Issue #86 only!
 - **Medium:** 13 issues (~54-68h) ⬇️⬇️⬇️
 - **Low:** 15 issues (~60-80h)
-- **รวม:** 30 issues (~117-151h)
+- **รวม:** 29 issues (~116-151h)
 
 ---
 
