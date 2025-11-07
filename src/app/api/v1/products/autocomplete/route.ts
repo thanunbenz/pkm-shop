@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/db';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 
 /**
