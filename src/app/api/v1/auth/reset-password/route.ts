@@ -16,8 +16,8 @@ import logger from "@/lib/logger";
 import {
   successResponse,
   errorResponse,
-  validationErrorResponse,
 } from "@/lib/utils/api-response";
+import { validationErrorResponse } from "@/lib/utils/validation-error";
 
 /**
  * Validation schema for password reset

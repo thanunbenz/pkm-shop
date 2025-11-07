@@ -8,7 +8,7 @@ import pack from "../../../../public/uploads/no_image_available.svg";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Loading from "@/components/ui/Loading";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { showToastError, showToastSuccess } from "@/lib/utils/toast";
 import CodeDataTable from "@/components/ui/CodeDataTable";
 import AddCodeButton from "@/components/ui/AddCodeButton";
@@ -197,7 +197,7 @@ export default function Page() {
 
     return (
         <>
-            {isLoading && <><Loading /></>}
+            {isLoading && <><LoadingSpinner /></>}
             <div className="flex mb-4 justify-between items-center">
                 <button className="inline-flex items-center px-4 py-2 bg-[#134A9B] hover:bg-blue-600 text-white text-sm font-medium rounded-full">
                     <Link href="/product"><FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Product List</Link>

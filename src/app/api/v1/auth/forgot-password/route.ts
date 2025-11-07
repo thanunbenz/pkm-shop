@@ -15,8 +15,8 @@ import logger from "@/lib/logger";
 import {
   successResponse,
   errorResponse,
-  validationErrorResponse,
 } from "@/lib/utils/api-response";
+import { validationErrorResponse } from "@/lib/utils/validation-error";
 import { sendPasswordResetEmail } from "@/lib/email";
 
 /**
@@ -102,24 +102,42 @@ export async function POST(request: NextRequest) {
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password/${resetToken}`;
 
     // 6. Send password reset email
+    let emailResult;
     try {
-      await sendPasswordResetEmail({
+      emailResult = await sendPasswordResetEmail({
         to: user.email,
         customerName: user.fname,
         resetUrl,
         expiresIn: "1 ชั่วโมง",
       });
 
-      logger.info("Password reset email sent", {
-        userId: user.id,
-        email: user.email,
-        tokenExpiry: tokenExpiry.toISOString(),
+      logger.info("Email send attempt completed", {
+        success: emailResult?.success,
+        hasMessageId: !!emailResult?.messageId,
+        hasError: !!emailResult?.error,
       });
     } catch (emailError) {
+      logger.error("Exception during email send", {
+        error: emailError instanceof Error ? emailError.message : "Unknown error",
+        stack: emailError instanceof Error ? emailError.stack : undefined,
+        userId: user.id,
+      });
+
+      // Still return success to prevent information leakage
+      return successResponse(
+        {
+          message:
+            "เกิดข้อผิดพลาดในการส่งอีเมล กรุณาลองใหม่อีกครั้งภายหลัง",
+        },
+        "เกิดข้อผิดพลาดในการส่งอีเมล"
+      );
+    }
+
+    // Check if email was sent successfully
+    if (!emailResult?.success) {
       // Log email error but don't fail the request
       logger.error("Failed to send password reset email", {
-        error:
-          emailError instanceof Error ? emailError.message : "Unknown error",
+        error: emailResult?.error || "Unknown error",
         userId: user.id,
         email: user.email,
       });
@@ -133,6 +151,13 @@ export async function POST(request: NextRequest) {
         "เกิดข้อผิดพลาดในการส่งอีเมล"
       );
     }
+
+    logger.info("Password reset email sent successfully", {
+      userId: user.id,
+      email: user.email,
+      tokenExpiry: tokenExpiry.toISOString(),
+      messageId: emailResult.messageId,
+    });
 
     // 7. Return success response
     return successResponse(
@@ -148,15 +173,18 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse(error);
     }
 
-    // Log unexpected errors
+    // Log unexpected errors with full details
     logger.error("Unexpected error during forgot password request", {
       error: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
+      errorType: error?.constructor?.name,
+      errorDetails: JSON.stringify(error, Object.getOwnPropertyNames(error)),
     });
 
     return errorResponse(
       "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
       500,
+      undefined,
       "INTERNAL_ERROR"
     );
   }

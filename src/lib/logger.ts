@@ -24,9 +24,27 @@ winston.addColors(colors);
 const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`,
-  ),
+  winston.format.printf((info) => {
+    const { timestamp, level, message, ...metadata } = info;
+    let log = `${timestamp} ${level}: ${message}`;
+
+    // Add metadata if present
+    if (Object.keys(metadata).length > 0) {
+      // Remove Symbol properties that winston adds
+      const cleanMetadata = Object.keys(metadata).reduce((acc, key) => {
+        if (typeof key === 'string' && !key.startsWith('Symbol(')) {
+          acc[key] = metadata[key];
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      if (Object.keys(cleanMetadata).length > 0) {
+        log += `\n${JSON.stringify(cleanMetadata, null, 2)}`;
+      }
+    }
+
+    return log;
+  }),
 );
 
 // Define transports

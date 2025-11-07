@@ -151,6 +151,8 @@ model Purchase {
   // CHECK constraints added via migration (Issue #82)
   // - quantity > 0
   // - totalAmount > 0
+  // Note (Issue #63): Order IDs can be formatted for display using formatOrderId() utility
+  // Database keeps INT for simplicity. Amazon-style formatting deferred to future implementation.
 }
 
 model PurchaseCode {

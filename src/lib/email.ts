@@ -1,22 +1,16 @@
-import sgMail from "@sendgrid/mail";
-import { render } from "@react-email/components";
+import { Resend } from "resend";
+import { render } from "@react-email/render";
 import logger from "./logger";
-import { validateEmailConfig } from "./startup-validation";
 
-// Validate email configuration at startup
-validateEmailConfig();
-
-// Initialize SendGrid client
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Email configuration
-const FROM_EMAIL = process.env.EMAIL_FROM || "noreply@pkm-shop.com";
+const FROM_EMAIL = process.env.EMAIL_FROM || "onboarding@resend.dev";
 const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || "support@pkm-shop.com";
 
 /**
- * Send email using SendGrid
+ * Send email using Resend
  * @param to - Recipient email address
  * @param subject - Email subject
  * @param react - React email component
@@ -38,52 +32,59 @@ export async function sendEmail({
     }
 
     // Check if API key is configured
-    if (!process.env.SENDGRID_API_KEY) {
-      logger.error("SENDGRID_API_KEY is not configured");
+    if (!process.env.RESEND_API_KEY) {
+      logger.error("RESEND_API_KEY is not configured");
       throw new Error("Email service is not configured");
     }
 
-    logger.info("Sending email", {
+    logger.info("Sending email via Resend", {
       to,
       subject,
       from: FROM_EMAIL,
     });
 
     // Render React component to HTML
-    const html = render(react);
+    const html = await render(react);
 
-    // Send email using SendGrid
-    const msg = {
-      to,
+    // Send email using Resend
+    const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
+      to,
       subject,
       html,
-      replyTo: REPLY_TO_EMAIL,
-    };
+      reply_to: REPLY_TO_EMAIL,
+    });
 
-    const response = await sgMail.send(msg);
+    if (error) {
+      logger.error("Resend API error", {
+        error: error.message,
+        to,
+        subject,
+      });
 
-    logger.info("Email sent successfully", {
-      messageId: response[0]?.headers?.["x-message-id"],
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    logger.info("Email sent successfully via Resend", {
+      messageId: data?.id,
       to,
       subject,
-      statusCode: response[0]?.statusCode,
     });
 
     return {
       success: true,
-      messageId: response[0]?.headers?.["x-message-id"],
+      messageId: data?.id,
     };
   } catch (error: any) {
     logger.error("Email sending error", {
       error: error instanceof Error ? error.message : "Unknown error",
       to,
       subject,
-      sendgridError: error?.response?.body,
     });
 
-    // Don't throw error to prevent blocking the main operation
-    // Email sending failure should not prevent order creation/update
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

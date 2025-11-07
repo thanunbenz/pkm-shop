@@ -28,7 +28,16 @@
       "Bash(npx prisma migrate:*)",
       "Bash(mysql:*)",
       "Bash(head:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then grep -E \"^(RESEND_API_KEY|EMAIL_FROM|NEXTAUTH_URL)=\" .env)",
+      "Bash(else echo \".env file does not exist\")",
+      "Bash(fi)",
+      "Bash(node -e:*)",
+      "Bash(.env)",
+      "Bash(rm:*)",
+      "Bash(npx next build:*)",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []
