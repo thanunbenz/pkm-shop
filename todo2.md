@@ -1,9 +1,9 @@
 # PKM Shop - งานที่ยังค้างอยู่
 
-**อัพเดท:** 2025-11-07 🎉 Issue #25 & #63 (Phase 1) เสร็จแล้ว!
+**อัพเดท:** 2025-11-07 🎉 Issues #25, #63, #19 Backend เสร็จแล้ว!
 **Branch:** feature/week2-medium-priority
-**ความคืบหน้า:** 99.7% Production-Ready
-**Medium Priority:** 12/26 (46%) ⬆️⬆️
+**ความคืบหน้า:** 99.8% Production-Ready
+**Medium Priority:** 12.5/26 (48%) ⬆️⬆️⬆️
 
 ---
 
@@ -50,13 +50,17 @@ npm test
   - ✅ Documentation complete (Implementation + Migration guides)
   - 📝 Phase 2: Order ID migration deferred (requires downtime)
 
-### Core Features - ยังไม่เริ่ม (10 issues)
+### Core Features - กำลังทำ (10 issues)
 
 #### ค้นหาและกรองสินค้า (2 issues)
-- [ ] **Issue #19:** Product Search - 3-4h
-  - Full-text search (ชื่อ, รายละเอียด)
-  - Autocomplete
-  - Search filters
+- [x] **Issue #19:** Product Search - Backend COMPLETE ✅ (50%)
+  - ✅ Search API endpoint (/api/v1/products/search)
+  - ✅ MySQL FULLTEXT index (name, description)
+  - ✅ Filters: category, price range, on sale
+  - ✅ Sorting: relevance, price, date
+  - ✅ Pagination support
+  - ✅ Complete documentation
+  - ⏳ Frontend: UI components pending (1.5-2h)
 
 - [ ] **Issue #20:** Category Filter - 2-3h
   - Filter by category
@@ -175,19 +179,19 @@ npm test
 - ✅ **Critical:** 7/7 (100%)
 - ✅ **High Priority:** 17/18 (94%)
   - Issue #84 พร้อม 100% แต่รอ npm install
-- ⏳ **Medium Priority:** 12/26 (46%) ⬆️⬆️
+- ⏳ **Medium Priority:** 12.5/26 (48%) ⬆️⬆️⬆️
   - Week 1: 5/5 ✅
   - Week 2: 4/4 ✅
   - Week 3: 1/2 (Issue #86 ค้าง 25%)
-  - Week 4: 2/2 ✅ (Issue #25, #63 Phase 1 เสร็จแล้ว!) 🎉🎉
-  - Remaining: 14 issues (ยังไม่เริ่ม)
+  - Week 4: 2.5/3 (Issue #25 ✅, #63 Phase 1 ✅, #19 Backend ✅ 50%)
+  - Remaining: 13.5 issues
 - ⏳ **Low Priority:** 0/15 (0%)
 
 ### งานที่เหลือทั้งหมด
 - **ด่วน:** 2 issues (~3h)
-- **Medium:** 14 issues (~60-75h) ⬇️⬇️
+- **Medium:** 13.5 issues (~58-73h) ⬇️⬇️⬇️
 - **Low:** 15 issues (~60-80h)
-- **รวม:** 31 issues (~123-158h)
+- **รวม:** 30.5 issues (~121-156h)
 
 ---
 
@@ -198,17 +202,18 @@ npm test
 2. [ ] Run tests Issue #84 (15min)
 3. ✅ Password Reset Flow #25 (4-5h) - 🎉 เสร็จแล้ว!
 4. ✅ Sequential IDs → Obfuscated #63 Phase 1 (3h) - 🎉 เสร็จแล้ว!
+5. ✅ Product Search #19 Backend (1.5h) - 🎉 Backend เสร็จ (50%)!
 
-**เสร็จแล้ว:** 2/4 (50%)
-**เหลือ:** 2-3h
+**เสร็จแล้ว:** 2.5/5 (50%)
+**เหลือ:** 2-3h (Issue #86, #84)
 
 ### สัปดาห์หน้า (Week 5)
-1. Product Search #19 (3-4h)
+1. Product Search #19 Frontend (1.5-2h) - เหลือ 50%
 2. Category Filter #20 (2-3h)
 3. Bulk Code Upload #21 (4-5h)
 4. Export CSV/Excel #22 (3-4h)
 
-**รวม:** 12-16h
+**รวม:** 11-14h
 
 ### สัปดาห์ถัดไป (Week 6)
 1. Analytics Dashboard #23 (6-8h)
@@ -232,6 +237,7 @@ npm test
 - ✅ Change password (with email notification)
 - ✅ Password reset flow (Forgot password) 🆕
 - ✅ ID obfuscation - Phase 1 (User IDs padded format) 🆕
+- ✅ Product search - Backend (API + FULLTEXT index) 🆕
 - ✅ I18n Thai/English
 - ✅ CORS configuration
 - ✅ Database validation (CHECK constraints)
