@@ -16,9 +16,9 @@ export const registerSchema = z.object({
 
   email: z
     .string()
+    .trim()
     .email("รูปแบบอีเมลไม่ถูกต้อง")
-    .toLowerCase()
-    .trim(),
+    .toLowerCase(),
 
   password: z
     .string()
@@ -39,9 +39,9 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z
     .string()
+    .trim()
     .email("รูปแบบอีเมลไม่ถูกต้อง")
-    .toLowerCase()
-    .trim(),
+    .toLowerCase(),
 
   password: z
     .string()
@@ -66,9 +66,9 @@ export const updateProfileSchema = z.object({
 
   email: z
     .string()
+    .trim()
     .email("รูปแบบอีเมลไม่ถูกต้อง")
     .toLowerCase()
-    .trim()
     .optional(),
 });
 

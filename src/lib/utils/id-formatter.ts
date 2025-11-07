@@ -30,7 +30,7 @@ const USER_ID_BASE = parseInt(process.env.USER_ID_BASE || '10000000000', 10);
  * @returns Formatted user ID string
  */
 export function formatUserId(id: number): string {
-  if (typeof id !== 'number' || id < 1) {
+  if (typeof id !== 'number' || isNaN(id) || id < 1) {
     throw new Error(`Invalid user ID: ${id}. Must be a positive number.`);
   }
 
