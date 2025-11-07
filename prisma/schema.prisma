@@ -101,6 +101,10 @@ model Product {
   @@index([issale])
   @@index([isrecommend])
   @@index([category])
+  @@index([price])
+  @@index([createdAt])
+  // FULLTEXT index for search (Issue #19) - Added via raw SQL migration
+  // @@fulltext([name, description]) - MySQL FULLTEXT search
   // CHECK constraints added via migration (Issue #82)
   // - price > 0
   // - discountprice >= 0
