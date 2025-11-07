@@ -269,3 +269,81 @@ export function isPaginatedResponse<T>(
     Array.isArray((response as any).data)
   );
 }
+
+/**
+ * Generic pagination helper for Prisma models
+ *
+ * @param options - Pagination options including model, page, limit, where, orderBy
+ * @returns Paginated data with metadata
+ *
+ * @example
+ * ```typescript
+ * const result = await paginate({
+ *   model: prisma.product,
+ *   page: 2,
+ *   limit: 20,
+ *   where: { category: 'PACK' },
+ *   orderBy: { createdAt: 'desc' }
+ * });
+ * ```
+ */
+export async function paginate<T>({
+  model,
+  page = 1,
+  limit = PAGINATION.DEFAULT_PAGE_SIZE,
+  where = {},
+  orderBy = {},
+  select,
+  include,
+}: {
+  model: any;
+  page?: number;
+  limit?: number;
+  where?: any;
+  orderBy?: any;
+  select?: any;
+  include?: any;
+}): Promise<{
+  data: T[];
+  pagination: PaginationMeta;
+}> {
+  // Validate and constrain parameters
+  const validatedPage = Math.max(1, page);
+  const validatedLimit = Math.min(
+    Math.max(1, limit),
+    PAGINATION.MAX_PAGE_SIZE
+  );
+  const skip = (validatedPage - 1) * validatedLimit;
+
+  // Build query options
+  const queryOptions: any = {
+    where,
+    orderBy,
+    take: validatedLimit,
+    skip,
+  };
+
+  if (select) queryOptions.select = select;
+  if (include) queryOptions.include = include;
+
+  // Execute queries in parallel
+  const [data, total] = await Promise.all([
+    model.findMany(queryOptions),
+    model.count({ where }),
+  ]);
+
+  // Create pagination metadata
+  const totalPages = Math.ceil(total / validatedLimit);
+
+  return {
+    data,
+    pagination: {
+      page: validatedPage,
+      limit: validatedLimit,
+      total,
+      totalPages,
+      hasNext: validatedPage < totalPages,
+      hasPrev: validatedPage > 1,
+    },
+  };
+}
