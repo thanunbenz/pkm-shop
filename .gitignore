@@ -43,3 +43,13 @@ next-env.d.ts
 # uploads
 public/uploads/*
 !public/uploads/.gitkeep
+
+# docker
+docker-compose.override.yml
+.env.local
+.env.production
+
+# logs
+logs/*
+!logs/.gitkeep
+*.log

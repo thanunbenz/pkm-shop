@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: pkm-shop-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-sumbenz2806}
+      MYSQL_DATABASE: ${DB_NAME:-pkm_shop}
+      MYSQL_USER: ${DB_USER:-pkm_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-pkm_password}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - pkm-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-sumbenz2806}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: ${NODE_ENV:-production}
+    container_name: pkm-shop-app
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=mysql://${DB_USER:-pkm_user}:${DB_PASSWORD:-pkm_password}@mysql:3306/${DB_NAME:-pkm_shop}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=${NODE_ENV:-production}
+      - SKIP_EMAIL_SEND=${SKIP_EMAIL_SEND:-true}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_SUPPORT=${EMAIL_SUPPORT}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - pkm-network
+    volumes:
+      - ./public:/app/public
+      - ./logs:/app/logs
+
+  # phpMyAdmin (Optional - for database management)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: pkm-shop-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_ROOT_PASSWORD:-sumbenz2806}
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    depends_on:
+      - mysql
+    networks:
+      - pkm-network
+
+networks:
+  pkm-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
