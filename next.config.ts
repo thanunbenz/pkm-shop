@@ -1,50 +1,25 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
+
+  // Image optimization configuration
   images: {
-    // No remotePatterns needed - only using local /uploads/ directory
-    // SECURITY: Removed wildcard hostname ('**') to prevent SSRF attacks
-    // If external images are needed in future, add specific whitelisted domains only
-    remotePatterns: [],
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    unoptimized: false,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
 
-  // Enable production optimizations
-  reactStrictMode: true,
-
-  // Optimize bundle size
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
-  },
-
-  // Improve performance
+  // Experimental features
   experimental: {
-    optimizePackageImports: ['@fortawesome/react-fontawesome', '@fortawesome/free-solid-svg-icons'],
-  },
-
-  // ESLint errors are linting issues, not blocking - can be fixed separately
-  // TypeScript type safety is now enforced during build
-  eslint: {
-    ignoreDuringBuilds: true,
+    // Optimize package imports
+    optimizePackageImports: ['react-icons', '@fortawesome/react-fontawesome'],
   },
 };
 
-// Sentry configuration options
-const sentryWebpackPluginOptions = {
-  silent: true, // Suppresses source map uploading logs during build
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-};
-
-// Export with Sentry if DSN is configured, otherwise export plain config
-export default process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+export default nextConfig;
